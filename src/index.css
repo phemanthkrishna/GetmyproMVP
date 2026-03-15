@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0F172A;
+  --card: #1E293B;
+  --border: #334155;
+  --text: #F8FAFC;
+  --muted: #94A3B8;
+  --primary: #3B82F6;
+  --accent: #F97316;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nunito', sans-serif;
+}
+
+/* App shell: mobile centered */
+#root {
+  display: flex;
+  justify-content: center;
+  background: #0a0f1e;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Scrollable page content with bottom nav space */
+.page-content {
+  padding-bottom: 80px;
+  min-height: 100dvh;
+}
+
+/* Active scale animation for buttons */
+.btn-press {
+  transition: transform 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.95);
+}
+
+/* OTP input style */
+.otp-digit {
+  width: 48px;
+  height: 56px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  outline: none;
+}
+.otp-digit:focus {
+  border-color: var(--primary);
+}
