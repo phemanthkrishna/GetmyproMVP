@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { JobCallScreen } from './components/JobCallScreen'
 
 // Pages
 import Landing from './pages/Landing'
@@ -38,7 +39,16 @@ function RequireAuth({ children, role }: { children: JSX.Element; role?: string 
 }
 
 export default function App() {
+  const { session } = useAuth()
   return (
+    <>
+    {session?.role === 'worker' && (
+      <JobCallScreen
+        workerId={session.id}
+        workerName={session.name}
+        workerPhone={session.phone}
+      />
+    )}
     <Routes>
       <Route path="/" element={<Landing />} />
 
@@ -69,5 +79,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

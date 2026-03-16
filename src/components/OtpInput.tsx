@@ -27,7 +27,7 @@ export function OtpInput({ value, onChange, length = 6 }: OtpInputProps) {
   function handlePaste(e: ClipboardEvent<HTMLInputElement>) {
     e.preventDefault()
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length)
-    onChange(pasted.padEnd(0, ''))
+    onChange(pasted)
     const focusIndex = Math.min(pasted.length, length - 1)
     refs.current[focusIndex]?.focus()
   }

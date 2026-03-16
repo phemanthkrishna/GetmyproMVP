@@ -2,14 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { BottomNav } from '../../components/BottomNav'
 import { formatCurrency, formatDate } from '../../lib/utils'
-import { ClipboardList, Users, DollarSign, Package, Store, ExternalLink } from 'lucide-react'
+import { ClipboardList, Users, DollarSign, Package, Store } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Order } from '../../types'
-
-function workerUpiLink(upiId: string, amount: number, note: string) {
-  const params = new URLSearchParams({ pa: upiId, pn: 'GetMyPro', am: amount.toFixed(2), cu: 'INR', tn: note })
-  return `upi://pay?${params.toString()}`
-}
 
 const NAV = [
   { to: '/admin', icon: ClipboardList, label: 'Orders' },
@@ -26,7 +21,15 @@ export default function AdminPayments() {
   const [orders, setOrders] = useState<Order[]>([])
   const [workerUpi, setWorkerUpi] = useState<Record<string, string>>({})
 
-  useEffect(() => { fetchOrders() }, [])
+  useEffect(() => {
+    fetchOrders()
+    const channel = supabase
+      .channel('admin-payments-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function fetchWorkerUpis(rows: Order[]) {
     const ids = [...new Set(rows.map(o => o.worker_id).filter(Boolean))] as string[]
@@ -78,16 +81,16 @@ export default function AdminPayments() {
 
   async function markLabourPaid(o: Order) {
     const { error } = await supabase.from('orders').update({ labour_pay_settled: true }).eq('id', o.id)
-    if (error) { toast.error(error.message); return }
-    toast.success(`Paid ${o.worker_name} — ${formatCurrency((o.quote_labour || 0) + WORKER_VISIT)}`)
-    fetchOrders()
+    if (error) { toast.error('Failed to mark payment, please try again'); return }
+    toast.success(`Marked paid — ${o.worker_name} ${formatCurrency((o.quote_labour || 0) + WORKER_VISIT)}`)
+    await fetchOrders()
   }
 
   async function markCancelPaid(o: Order) {
     const { error } = await supabase.from('orders').update({ cancellation_pay_settled: true }).eq('id', o.id)
-    if (error) { toast.error(error.message); return }
-    toast.success(`Paid ${o.worker_name} — ${formatCurrency(o.worker_cancellation_pay || 0)}`)
-    fetchOrders()
+    if (error) { toast.error('Failed to mark payment, please try again'); return }
+    toast.success(`Marked paid — ${o.worker_name} ${formatCurrency(o.worker_cancellation_pay || 0)}`)
+    await fetchOrders()
   }
 
   return (
@@ -142,14 +145,6 @@ export default function AdminPayments() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className="text-orange-400 font-black text-base">{formatCurrency((o.quote_labour || 0) + WORKER_VISIT)}</span>
-                  {o.worker_id && workerUpi[o.worker_id] && (
-                    <a
-                      href={workerUpiLink(workerUpi[o.worker_id], (o.quote_labour || 0) + WORKER_VISIT, `Payout ${o.id}`)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-500 text-white font-bold flex items-center gap-1"
-                    >
-                      <ExternalLink size={10} /> Pay via UPI
-                    </a>
-                  )}
                   <button
                     onClick={() => markLabourPaid(o)}
                     className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-bold"
@@ -183,14 +178,6 @@ export default function AdminPayments() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className="text-orange-400 font-black text-base">{formatCurrency(o.worker_cancellation_pay || 0)}</span>
-                  {o.worker_id && workerUpi[o.worker_id] && (
-                    <a
-                      href={workerUpiLink(workerUpi[o.worker_id], o.worker_cancellation_pay || 0, `Visit charge ${o.id}`)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-500 text-white font-bold flex items-center gap-1"
-                    >
-                      <ExternalLink size={10} /> Pay via UPI
-                    </a>
-                  )}
                   <button
                     onClick={() => markCancelPaid(o)}
                     className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-bold"

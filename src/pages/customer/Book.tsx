@@ -8,7 +8,6 @@ import { Card } from '../../components/ui/Card'
 import { BottomNav } from '../../components/BottomNav'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { openUpiPayment } from '../../lib/upi'
 import { generateOtp, generateOrderId, formatCurrency } from '../../lib/utils'
 import { Home, BookOpen, List } from 'lucide-react'
 
@@ -24,6 +23,9 @@ export default function Book() {
   const [address, setAddress] = useState('')
   const [problem, setProblem] = useState('')
   const [loading, setLoading] = useState(false)
+  const [workersAvailable, setWorkersAvailable] = useState<boolean | null>(null)
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
+  const [alertSaved, setAlertSaved] = useState(false)
   const { session } = useAuth()
   const navigate = useNavigate()
 
@@ -31,6 +33,36 @@ export default function Book() {
     const svc = params.get('service')
     if (svc) setSelectedService(svc)
   }, [params])
+
+  useEffect(() => {
+    if (!selectedService) { setWorkersAvailable(null); setAlertSaved(false); return }
+    checkAvailability(selectedService)
+
+    // Re-check availability in realtime as workers go on/offline
+    const channel = supabase
+      .channel('book-worker-status')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'workers' }, () => {
+        checkAvailability(selectedService)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [selectedService])
+
+  async function checkAvailability(service: string) {
+    setCheckingAvailability(true)
+    const { data } = await supabase
+      .from('workers')
+      .select('service, service_categories')
+      .eq('verified', true)
+      .eq('is_active', true)
+      .eq('is_online', true)
+    const available = (data || []).some(w =>
+      w.service === service ||
+      (Array.isArray(w.service_categories) && w.service_categories.includes(service))
+    )
+    setWorkersAvailable(available)
+    setCheckingAvailability(false)
+  }
 
   const serviceObj = SERVICES.find(s => s.name === selectedService)
 
@@ -45,7 +77,6 @@ export default function Book() {
       const arrivalOtp = generateOtp()
       const compOtp = generateOtp()
 
-      // Insert order (booking_paid=false, admin confirms after UPI)
       const { error } = await supabase.from('orders').insert({
         id: orderId,
         customer_id: session.id,
@@ -63,13 +94,38 @@ export default function Book() {
       })
       if (error) throw error
 
-      // Open UPI
-      openUpiPayment(BOOKING_FEE, `Booking ${orderId}`)
+      // Clear any saved alert for this service since they're now booking
+      await supabase.from('service_alerts')
+        .delete()
+        .eq('customer_id', session.id)
+        .eq('service', selectedService)
 
-      toast.success('Order placed! Complete payment via UPI 🎉')
+      toast.success('Order placed! Our team will contact you shortly.')
       navigate(`/customer/orders/${orderId}`)
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to place order')
+    } catch {
+      toast.error('Failed to place order, please try again')
+    }
+    setLoading(false)
+  }
+
+  async function handleNotifyMe() {
+    if (!address.trim()) return toast.error('Enter your address so we can notify you')
+    if (!session) return
+    setLoading(true)
+    try {
+      const { error } = await supabase.from('service_alerts').upsert({
+        customer_id: session.id,
+        customer_name: session.name,
+        customer_phone: session.phone,
+        service: selectedService,
+        address,
+        problem_description: problem || null,
+      }, { onConflict: 'customer_id,service' })
+      if (error) throw error
+      setAlertSaved(true)
+      toast.success("You're on the list! We'll notify you when a partner comes online.")
+    } catch {
+      toast.error('Failed to save, please try again')
     }
     setLoading(false)
   }
@@ -104,7 +160,7 @@ export default function Book() {
           <div className="flex items-center gap-3">
             <span className="text-4xl">{serviceObj?.emoji}</span>
             <button
-              onClick={() => setSelectedService('')}
+              onClick={() => { setSelectedService(''); setWorkersAvailable(null); setAlertSaved(false) }}
               className="text-white/70 text-xs border border-white/30 rounded-lg px-2 py-1"
             >
               Change
@@ -113,51 +169,117 @@ export default function Book() {
         </div>
       )}
 
-      {/* Form */}
-      <div className="flex flex-col gap-4 mb-5">
-        <Input
-          label="Full Address"
-          placeholder="House no, street, locality, Hyderabad"
-          value={address}
-          onChange={e => setAddress(e.target.value)}
-        />
-        <div>
-          <label className="block text-sm text-slate-400 mb-1 font-medium">
-            Describe the problem (optional)
-          </label>
-          <textarea
-            placeholder="E.g. pipe is leaking under kitchen sink..."
-            value={problem}
-            onChange={e => setProblem(e.target.value)}
-            rows={3}
-            className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-slate-50 placeholder-slate-500 outline-none focus:border-blue-500 transition-colors resize-none"
-          />
+      {/* Checking availability */}
+      {selectedService && checkingAvailability && (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 mb-4 text-slate-400 text-sm text-center animate-pulse">
+          Checking partner availability...
         </div>
-      </div>
+      )}
 
-      {/* Payment card */}
-      <Card className="mb-5">
-        <p className="font-bold text-slate-50 mb-3">Payment Breakdown</p>
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between text-slate-400">
-            <span>Booking fee</span>
-            <span>{formatCurrency(BOOKING_FEE)}</span>
+      {/* ── No workers available ── */}
+      {selectedService && !checkingAvailability && workersAvailable === false && (
+        <>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-5">
+            <p className="text-amber-400 font-bold text-sm mb-1">No partners available right now</p>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              All {selectedService} pros are currently offline. Enter your details below and we'll notify you
+              the moment a partner comes online.
+            </p>
           </div>
-        </div>
-        <div className="border-t border-slate-700 mt-3 pt-3 flex justify-between items-center">
-          <span className="font-bold text-slate-50">Pay now</span>
-          <span className="bg-orange-500 text-white font-black px-3 py-1 rounded-full text-lg">
-            {formatCurrency(BOOKING_FEE)}
-          </span>
-        </div>
-        <p className="text-slate-500 text-xs mt-3">
-          Worker visits, checks the job, then sends you a full quote. You pay for work only after seeing the price.
-        </p>
-      </Card>
 
-      <Button size="lg" variant="accent" loading={loading} onClick={handleBook}>
-        Pay {formatCurrency(BOOKING_FEE)} via UPI 🔒
-      </Button>
+          {alertSaved ? (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 text-center mb-5">
+              <p className="text-3xl mb-2">🔔</p>
+              <p className="text-green-400 font-bold text-base mb-1">You're on the list!</p>
+              <p className="text-slate-400 text-sm">
+                We'll notify you on the home screen the moment a {selectedService} partner comes online.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-4 mb-5">
+                <Input
+                  label="Your Address"
+                  placeholder="House no, street, locality"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                />
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1 font-medium">
+                    Describe the problem (optional)
+                  </label>
+                  <textarea
+                    placeholder="E.g. pipe is leaking under kitchen sink..."
+                    value={problem}
+                    onChange={e => setProblem(e.target.value)}
+                    rows={3}
+                    className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-slate-50 placeholder-slate-500 outline-none focus:border-blue-500 transition-colors resize-none"
+                  />
+                </div>
+              </div>
+              <Button size="lg" loading={loading} onClick={handleNotifyMe}>
+                🔔 Notify me when available
+              </Button>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Workers available — normal booking flow ── */}
+      {selectedService && !checkingAvailability && workersAvailable === true && (
+        <>
+          <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl p-3 mb-5">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+            <p className="text-green-400 text-sm font-semibold">Partners available — ready to book</p>
+          </div>
+
+          {/* Form */}
+          <div className="flex flex-col gap-4 mb-5">
+            <Input
+              label="Full Address"
+              placeholder="House no, street, locality"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+            />
+            <div>
+              <label className="block text-sm text-slate-400 mb-1 font-medium">
+                Describe the problem (optional)
+              </label>
+              <textarea
+                placeholder="E.g. pipe is leaking under kitchen sink..."
+                value={problem}
+                onChange={e => setProblem(e.target.value)}
+                rows={3}
+                className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-slate-50 placeholder-slate-500 outline-none focus:border-blue-500 transition-colors resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Payment card */}
+          <Card className="mb-5">
+            <p className="font-bold text-slate-50 mb-3">Payment Breakdown</p>
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between text-slate-400">
+                <span>Booking fee</span>
+                <span>{formatCurrency(BOOKING_FEE)}</span>
+              </div>
+            </div>
+            <div className="border-t border-slate-700 mt-3 pt-3 flex justify-between items-center">
+              <span className="font-bold text-slate-50">Booking fee</span>
+              <span className="bg-orange-500 text-white font-black px-3 py-1 rounded-full text-lg">
+                {formatCurrency(BOOKING_FEE)}
+              </span>
+            </div>
+            <p className="text-slate-500 text-xs mt-3">
+              Worker visits, checks the job, then sends you a full quote. Payment will be collected via our secure gateway.
+            </p>
+          </Card>
+
+          <Button size="lg" variant="accent" loading={loading} onClick={handleBook}>
+            Confirm Booking →
+          </Button>
+        </>
+      )}
 
       <BottomNav items={NAV} />
     </div>

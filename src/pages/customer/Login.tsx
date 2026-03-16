@@ -35,7 +35,7 @@ export default function CustomerLogin() {
 
   async function handleSendOtp() {
     if (!name.trim()) return toast.error('Enter your name')
-    if (phone.length < 10) return toast.error('Enter a valid phone number')
+    if (phone.length !== 10 || !/^[6-9]/.test(phone)) return toast.error('Enter a valid 10-digit Indian mobile number')
     if (!verifierRef.current) return toast.error('reCAPTCHA not ready, refresh the page')
     setLoading(true)
     try {
@@ -61,11 +61,12 @@ export default function CustomerLogin() {
         return
       }
 
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from('profiles')
         .select('id, role')
         .eq('phone', phone)
-        .single()
+        .maybeSingle()
+      if (fetchError) throw fetchError
 
       let profileId: string
       if (existing) {
@@ -100,7 +101,7 @@ export default function CustomerLogin() {
         </h1>
         <p className="text-slate-400 mt-1">
           {step === 'phone'
-            ? 'Book trusted pros in Hyderabad'
+            ? 'Book trusted home service pros'
             : `Sent to +91 ${phone}`}
         </p>
       </div>

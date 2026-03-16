@@ -36,7 +36,8 @@ export default function AdminStores() {
   useEffect(() => { fetchStores() }, [])
 
   async function fetchStores() {
-    const { data } = await supabase.from('stores').select('*').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('stores').select('*').order('created_at', { ascending: false })
+    if (error) console.error('Failed to load stores:', error.message)
     setStores((data as StoreRow[]) || [])
   }
 
@@ -44,6 +45,7 @@ export default function AdminStores() {
     if (!form.name.trim()) return toast.error('Enter store name')
     if (!form.store_type.trim()) return toast.error('Enter store type')
     if (!form.contact.trim()) return toast.error('Enter contact')
+    if (form.commission_pct <= 0 || form.commission_pct > 100) return toast.error('Commission % must be between 1 and 100')
     setSaving(true)
     const { error } = await supabase.from('stores').insert({
       name: form.name.trim(),

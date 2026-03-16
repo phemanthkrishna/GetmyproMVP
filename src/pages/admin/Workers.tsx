@@ -21,10 +21,19 @@ export default function AdminWorkers() {
   const [saving, setSaving] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  useEffect(() => { fetchWorkers() }, [])
+  useEffect(() => {
+    fetchWorkers()
+    const channel = supabase
+      .channel('admin-workers')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'workers' }, () => fetchWorkers())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'workers' }, () => fetchWorkers())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function fetchWorkers() {
-    const { data } = await supabase.from('workers').select('*').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('workers').select('*').order('created_at', { ascending: false })
+    if (error) console.error('Failed to load workers:', error.message)
     setWorkers((data as Worker[]) || [])
   }
 
@@ -37,15 +46,23 @@ export default function AdminWorkers() {
   }
 
   async function reject(w: Worker) {
-    if (!confirm(`Remove ${w.name}? This cannot be undone.`)) return
+    if (!confirm(`Reject ${w.name}? Their account will be deactivated and hidden.`)) return
     setSaving(w.id)
-    // Unlink worker from any orders first
-    await supabase.from('orders').update({ worker_id: null, worker_name: null, worker_phone: null }).eq('worker_id', w.id)
-    const { error: wErr } = await supabase.from('workers').delete().eq('id', w.id)
-    if (wErr) { toast.error('Failed to remove worker: ' + wErr.message); setSaving(null); return }
-    const { error: pErr } = await supabase.from('profiles').delete().eq('id', w.id)
-    if (pErr) { toast.error('Failed to remove profile: ' + pErr.message); setSaving(null); return }
-    toast.success('Worker removed')
+    // Soft-delete: mark as inactive and not verified rather than hard deleting.
+    // This preserves order history and Aadhaar record for compliance/audit.
+    const { error: wErr } = await supabase
+      .from('workers')
+      .update({ verified: false, is_active: false, is_online: false })
+      .eq('id', w.id)
+    if (wErr) { toast.error('Failed to reject worker, please try again'); setSaving(null); return }
+    // Unlink from any open (non-terminal) orders so they can be reassigned
+    const { error: unlinkErr } = await supabase
+      .from('orders')
+      .update({ worker_id: null, worker_name: null, worker_phone: null })
+      .eq('worker_id', w.id)
+      .not('status', 'in', '("completed","cancelled")')
+    if (unlinkErr) console.error('Failed to unlink open orders:', unlinkErr.message)
+    toast.success('Worker rejected and deactivated')
     fetchWorkers()
     setSaving(null)
   }
@@ -54,7 +71,7 @@ export default function AdminWorkers() {
     if (!confirm(`Deactivate ${w.name}? They will be removed from the job pool.`)) return
     setSaving(w.id)
     const { error } = await supabase.from('workers').update({ is_active: false, verified: false }).eq('id', w.id)
-    if (error) { toast.error(error.message); setSaving(null); return }
+    if (error) { toast.error('Failed to deactivate worker, please try again'); setSaving(null); return }
     toast.success(`${w.name} deactivated`)
     fetchWorkers()
     setSaving(null)
@@ -113,8 +130,9 @@ export default function AdminWorkers() {
               <div className="mt-3 border-t border-slate-700 pt-3">
                 <p className="text-slate-400 text-xs mb-1">Aadhaar Number</p>
                 <p className="text-slate-50 font-mono text-lg tracking-widest">
-                  {w.aadhaar_url.replace(/(\d{4})(?=\d)/g, '$1 ')}
+                  {`XXXX XXXX ${w.aadhaar_url.replace(/\s/g, '').slice(-4)}`}
                 </p>
+                <p className="text-slate-600 text-xs mt-1">Only last 4 digits shown for security</p>
               </div>
             )}
 
@@ -167,13 +185,13 @@ export default function AdminWorkers() {
             {w.is_active === false && (
               <div className="flex gap-2 mt-3">
                 <Button
-                  variant="danger"
+                  variant="primary"
                   size="sm"
                   className="flex-1"
                   loading={saving === w.id}
-                  onClick={() => reject(w)}
+                  onClick={() => verify(w)}
                 >
-                  Delete Permanently
+                  Re-Activate
                 </Button>
               </div>
             )}

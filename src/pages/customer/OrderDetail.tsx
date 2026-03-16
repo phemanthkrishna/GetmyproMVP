@@ -7,7 +7,6 @@ import { JourneyTracker } from '../../components/JourneyTracker'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { supabase } from '../../lib/supabase'
-import { openUpiPayment } from '../../lib/upi'
 import { formatDate, formatCurrency } from '../../lib/utils'
 import { ArrowLeft, Star } from 'lucide-react'
 
@@ -23,34 +22,46 @@ export default function CustomerOrderDetail() {
 
   useEffect(() => {
     if (order?.worker_id) {
-      supabase.from('workers').select('photo_url').eq('id', order.worker_id).single()
-        .then(({ data }) => setWorkerPhoto(data?.photo_url || null))
+      supabase.from('workers').select('photo_url').eq('id', order.worker_id).maybeSingle()
+        .then(({ data, error }) => {
+          if (!error) setWorkerPhoto(data?.photo_url || null)
+        })
     }
   }, [order?.worker_id])
 
   async function handleFinalPay() {
     if (!order) return
-    openUpiPayment(order.total_quote!, `Final payment ${order.id}`)
+    if (!order.total_quote) return toast.error('Quote amount not available yet')
     setSaving(true)
-    if (upiRef) {
-      await supabase.from('orders').update({ upi_final_ref: upiRef }).eq('id', order.id)
-      toast.success('Reference saved! Admin will confirm payment shortly.')
+    try {
+      const { error } = await supabase.from('orders').update({ upi_final_ref: upiRef || 'pending' }).eq('id', order.id)
+      if (error) throw error
+      toast.success('Payment submitted! Admin will confirm shortly.')
+      setPaymentSubmitted(true)
+    } catch {
+      toast.error('Failed to submit, please try again')
     }
     setSaving(false)
-    setPaymentSubmitted(true)
   }
 
   async function cancelOrder() {
     if (!order) return
+    if (order.status === 'cancelled') return // idempotency guard
     if (!confirm('Cancel this order? The worker has already visited, so ₹100 of your booking fee will go to the Pro.')) return
     setSaving(true)
-    await supabase.from('orders').update({
-      status: 'cancelled',
-      worker_cancellation_pay: 100,
-    }).eq('id', order.id)
-    toast.success('Order cancelled.')
+    try {
+      const workerVisited = ['inspecting', 'quote_sent', 'in_progress', 'done_uploaded', 'worker_visiting'].includes(order.status)
+      const { error } = await supabase.from('orders').update({
+        status: 'cancelled',
+        worker_cancellation_pay: workerVisited ? 100 : 0,
+      }).eq('id', order.id).neq('status', 'cancelled') // extra server-side idempotency
+      if (error) throw error
+      toast.success('Order cancelled.')
+      refetch()
+    } catch {
+      toast.error('Failed to cancel order, please try again')
+    }
     setSaving(false)
-    refetch()
   }
 
   async function submitRating(val: number) {
@@ -157,7 +168,7 @@ export default function CustomerOrderDetail() {
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-50 text-sm placeholder-slate-600 outline-none mb-3"
                 />
                 <Button size="lg" variant="accent" loading={saving} onClick={handleFinalPay}>
-                  Pay {formatCurrency(order.total_quote || 0)} via UPI 🔒
+                  Submit Payment →
                 </Button>
                 <button
                   onClick={cancelOrder}

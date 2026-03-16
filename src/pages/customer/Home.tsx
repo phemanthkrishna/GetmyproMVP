@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SERVICES } from '../../constants'
 import { BottomNav } from '../../components/BottomNav'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../hooks/useOrders'
+import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
 import { Home, BookOpen, List, ChevronRight, LogOut } from 'lucide-react'
 
@@ -13,11 +15,63 @@ const NAV = [
   { to: '/customer/orders', icon: List, label: 'Orders' },
 ]
 
+interface ReadyAlert { service: string; emoji: string }
+
 export default function CustomerHome() {
   const { session, signOut } = useAuth()
   const navigate = useNavigate()
   const { orders } = useOrders({ customer_id: session?.id || '' })
   const active = orders.filter(o => !['completed', 'cancelled'].includes(o.status))
+  const [readyAlerts, setReadyAlerts] = useState<ReadyAlert[]>([])
+
+  useEffect(() => {
+    if (!session?.id) return
+    checkAlerts()
+
+    // Re-check whenever any worker's online status changes
+    const channel = supabase
+      .channel('home-partner-status')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'workers' }, () => checkAlerts())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [session?.id])
+
+  async function checkAlerts() {
+    if (!session?.id) return
+    const { data: alerts } = await supabase
+      .from('service_alerts')
+      .select('service')
+      .eq('customer_id', session.id)
+    if (!alerts?.length) { setReadyAlerts([]); return }
+
+    const { data: onlineWorkers } = await supabase
+      .from('workers')
+      .select('service, service_categories')
+      .eq('verified', true)
+      .eq('is_active', true)
+      .eq('is_online', true)
+
+    const ready = alerts
+      .filter(alert =>
+        (onlineWorkers || []).some(w =>
+          w.service === alert.service ||
+          (Array.isArray(w.service_categories) && w.service_categories.includes(alert.service))
+        )
+      )
+      .map(alert => ({
+        service: alert.service,
+        emoji: SERVICES.find(s => s.name === alert.service)?.emoji || '🔧',
+      }))
+    setReadyAlerts(ready)
+  }
+
+  async function dismissAlert(service: string) {
+    if (!session?.id) return
+    await supabase.from('service_alerts').delete()
+      .eq('customer_id', session.id)
+      .eq('service', service)
+    setReadyAlerts(prev => prev.filter(a => a.service !== service))
+  }
 
   return (
     <div className="page-content px-5 py-6">
@@ -31,6 +85,45 @@ export default function CustomerHome() {
           <LogOut size={14} /> Sign Out
         </button>
       </div>
+
+      {/* Partner availability notifications */}
+      {readyAlerts.length > 0 && (
+        <div className="mb-5">
+          {readyAlerts.map(alert => (
+            <div
+              key={alert.service}
+              className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-2 flex items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-2xl shrink-0">{alert.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-green-400 font-bold text-sm leading-tight">
+                    {alert.service} partners are online!
+                  </p>
+                  <p className="text-slate-400 text-xs mt-0.5">Ready to accept your booking now</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    dismissAlert(alert.service)
+                    navigate(`/customer/book?service=${encodeURIComponent(alert.service)}`)
+                  }}
+                  className="text-xs bg-green-500 text-white font-bold px-3 py-1.5 rounded-lg whitespace-nowrap"
+                >
+                  Book now
+                </button>
+                <button
+                  onClick={() => dismissAlert(alert.service)}
+                  className="text-slate-500 text-xs"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Active orders banner */}
       {active.length > 0 && (

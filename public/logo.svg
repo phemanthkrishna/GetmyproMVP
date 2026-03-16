@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" fill="none">
+  <defs>
+    <linearGradient id="pinGrad" x1="0" y1="0" x2="100" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1D6FD9"/>
+      <stop offset="100%" stop-color="#E85520"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#E85520" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Location pin / teardrop shape -->
+  <path d="M50 3C25.1 3 5 23.1 5 48C5 72.9 50 117 50 117C50 117 95 72.9 95 48C95 23.1 74.9 3 50 3Z" fill="url(#pinGrad)" filter="url(#shadow)"/>
+  <!-- Wrench icon (Lucide-style, white, centered in the circular part of the pin) -->
+  <g transform="translate(29,27) scale(1.75)" fill="none" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+  </g>
+</svg>

@@ -12,7 +12,8 @@ export function useOrders(filter: Record<string, string>) {
       query = query.eq(col, val)
     }
     const { data, error } = await query
-    if (!error && data) setOrders(data as Order[])
+    if (error) console.error('Failed to load orders:', error.message)
+    else if (data) setOrders(data as Order[])
     setLoading(false)
   }
 
@@ -40,8 +41,9 @@ export function useOrder(orderId: string) {
       .from('orders')
       .select('*')
       .eq('id', orderId)
-      .single()
-    if (!error && data) setOrder(data as Order)
+      .maybeSingle()
+    if (error) console.error('Failed to load order:', error.message)
+    else if (data) setOrder(data as Order)
     setLoading(false)
   }
 

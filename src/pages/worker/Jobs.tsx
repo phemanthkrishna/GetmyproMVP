@@ -25,6 +25,7 @@ export default function WorkerJobs() {
 
   const { orders: myJobs } = useOrders({ worker_id: session?.id || '' })
   const activeJobs = myJobs.filter(o => !['completed', 'cancelled'].includes(o.status))
+  const isBusyOnJob = activeJobs.some(o => o.worker_id === session?.id && !['completed', 'cancelled'].includes(o.status))
   const totalEarned = myJobs
     .filter(o => o.status === 'completed')
     .reduce((sum, o) => sum + (o.quote_labour || 0), 0)
@@ -135,8 +136,15 @@ export default function WorkerJobs() {
         </>
       )}
 
-      {/* Available Jobs — only for verified + online workers */}
-      {isVerified && workerInfo?.is_online && (
+      {/* Busy banner — worker has an active job */}
+      {isBusyOnJob && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-4 text-orange-400 text-sm">
+          🔒 You're currently on a job — complete it before accepting new requests
+        </div>
+      )}
+
+      {/* Available Jobs — only for verified + online workers with no active job */}
+      {isVerified && workerInfo?.is_online && !isBusyOnJob && (
         <>
           <h2 className="text-base font-bold text-slate-300 mb-3">Available Jobs</h2>
           {filteredAvailable.length === 0 ? (

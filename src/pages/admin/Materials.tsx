@@ -23,14 +23,23 @@ export default function AdminMaterials() {
   const [saving, setSaving] = useState<string | null>(null)
   const [discounts, setDiscounts] = useState<Record<string, number>>({})
 
-  useEffect(() => { fetchOrders() }, [])
+  useEffect(() => {
+    fetchOrders()
+    const channel = supabase
+      .channel('admin-materials-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function fetchOrders() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select('*')
       .not('quote_materials', 'eq', '[]')
       .order('created_at', { ascending: false })
+    if (error) console.error('Failed to load material orders:', error.message)
     const rows = (data as Order[]) || []
     setOrders(rows)
     // Default discount for unpaid orders

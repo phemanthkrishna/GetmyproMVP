@@ -40,7 +40,7 @@ export default function WorkerRegister() {
   async function handleSendOtp() {
     if (!name.trim()) return toast.error('Enter your name')
     if (serviceCategories.length === 0) return toast.error('Select at least one service')
-    if (phone.length < 10) return toast.error('Enter valid phone number')
+    if (phone.length !== 10 || !/^[6-9]/.test(phone)) return toast.error('Enter a valid 10-digit Indian mobile number')
     if (!verifierRef.current) return toast.error('reCAPTCHA not ready, refresh the page')
     setLoading(true)
     try {
@@ -71,6 +71,16 @@ export default function WorkerRegister() {
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error('Only JPEG, PNG, WebP or HEIC images are allowed')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Photo must be under 5 MB')
+      return
+    }
+    setPhotoPreview(prev => { if (prev) URL.revokeObjectURL(prev); return '' })
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
   }
@@ -79,6 +89,19 @@ export default function WorkerRegister() {
     if (!photoFile) return toast.error('Upload your photo to continue')
     setLoading(true)
     try {
+      // Check if a verified worker already exists with this phone number
+      const { data: existingWorker } = await supabase
+        .from('workers')
+        .select('id, verified, is_active')
+        .eq('phone', phone)
+        .maybeSingle()
+
+      if (existingWorker && existingWorker.verified && existingWorker.is_active !== false) {
+        toast.error('A verified worker account already exists for this number. Please login instead.')
+        setLoading(false)
+        return
+      }
+
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .upsert({ phone, name, role: 'worker' }, { onConflict: 'phone' })
@@ -86,8 +109,8 @@ export default function WorkerRegister() {
         .single()
       if (profileError) throw profileError
 
-      // Upload photo
-      const ext = photoFile.name.split('.').pop()
+      // Upload photo with sanitized extension
+      const ext = (photoFile.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
       const path = `photos/${profile.id}.${ext}`
       const { error: uploadError } = await supabase.storage
         .from('uploads')
@@ -105,14 +128,15 @@ export default function WorkerRegister() {
         photo_url: publicUrl,
         upi_id: upiId.trim() || null,
         verified: false,
+        is_active: true,
       }, { onConflict: 'id' })
       if (workerError) throw workerError
 
       signIn({ id: profile.id, name, phone, role: 'worker' })
       toast.success('Registration submitted! Admin will verify you shortly.')
       navigate('/worker')
-    } catch (e: any) {
-      toast.error(e.message || 'Registration failed')
+    } catch {
+      toast.error('Registration failed, please try again')
     }
     setLoading(false)
   }
@@ -262,7 +286,7 @@ export default function WorkerRegister() {
 
           {photoPreview && (
             <button
-              onClick={() => { setPhotoFile(null); setPhotoPreview('') }}
+              onClick={() => { if (photoPreview) URL.revokeObjectURL(photoPreview); setPhotoFile(null); setPhotoPreview('') }}
               className="text-slate-500 text-xs text-center w-full mb-4"
             >
               Retake photo

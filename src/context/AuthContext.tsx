@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { supabase } from '../lib/supabase'
 import type { StoredSession, Role } from '../types'
 
 interface AuthContextValue {
@@ -17,13 +18,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY)
-      if (raw) setSession(JSON.parse(raw))
-    } catch {
-      // ignore
+    async function verifyAndLoad() {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY)
+        if (!raw) { setLoading(false); return }
+
+        const stored = JSON.parse(raw) as StoredSession
+
+        if (stored.role === 'admin') {
+          // Admin sessions are backed by Supabase Auth — verify the token is still valid
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) {
+            // Supabase Auth session expired or invalid — clear stored session
+            localStorage.removeItem(SESSION_KEY)
+            setLoading(false)
+            return
+          }
+          // Extra check: confirm DB profile still has admin role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle()
+          if (!profile || profile.role !== 'admin') {
+            localStorage.removeItem(SESSION_KEY)
+            await supabase.auth.signOut()
+            setLoading(false)
+            return
+          }
+        } else {
+          // Customer / worker: verify their role from the profiles table
+          // This prevents anyone from editing localStorage role to 'admin'
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', stored.id)
+            .maybeSingle()
+          if (!profile || profile.role !== stored.role) {
+            localStorage.removeItem(SESSION_KEY)
+            setLoading(false)
+            return
+          }
+        }
+
+        setSession(stored)
+      } catch {
+        localStorage.removeItem(SESSION_KEY)
+      }
+      setLoading(false)
     }
-    setLoading(false)
+
+    verifyAndLoad()
   }, [])
 
   function signIn(data: StoredSession) {
@@ -31,9 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(data)
   }
 
-  function signOut() {
+  async function signOut() {
     localStorage.removeItem(SESSION_KEY)
     setSession(null)
+    // If admin session, also sign out of Supabase Auth
+    await supabase.auth.signOut().catch(() => {})
   }
 
   return (

@@ -41,4 +41,3 @@ export function getStepIndex(status: string): number {
   return STATUS_ORDER.indexOf(status)
 }
 
-export const ADMIN_EMAIL = 'admin@getmypro.in'

@@ -33,16 +33,17 @@ export default function WorkerLogin() {
   }, [])
 
   async function handleSendOtp() {
-    if (phone.length < 10) return toast.error('Enter a valid phone number')
+    if (phone.length !== 10 || !/^[6-9]/.test(phone)) return toast.error('Enter a valid 10-digit Indian mobile number')
     if (!verifierRef.current) return toast.error('reCAPTCHA not ready, refresh the page')
     setLoading(true)
     try {
-      const { data: worker } = await supabase
+      const { data: worker, error: workerLookupError } = await supabase
         .from('workers')
         .select('id')
         .eq('phone', phone)
-        .single()
+        .maybeSingle()
 
+      if (workerLookupError) throw workerLookupError
       if (!worker) {
         toast.error('No worker account found. Redirecting to registration...')
         setTimeout(() => navigate('/worker/register'), 1500)
@@ -72,12 +73,13 @@ export default function WorkerLogin() {
         return
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, name, role')
         .eq('phone', phone)
-        .single()
+        .maybeSingle()
 
+      if (profileError) throw profileError
       if (!profile || profile.role !== 'worker') {
         toast.error('No worker account found. Please register first.')
         navigate('/worker/register')

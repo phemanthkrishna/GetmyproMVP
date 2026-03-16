@@ -49,40 +49,50 @@ export default function AdminOrderDetail() {
       worker_name: w.name,
       worker_phone: w.phone,
     }).eq('id', order!.id)
-    if (error) toast.error(error.message)
+    if (error) toast.error('Failed to assign worker, please try again')
     else { toast.success('Worker assigned ✓'); refetch() }
     setSaving(false)
   }
 
   async function confirmMatCost() {
     if (!matCost || isNaN(Number(matCost))) return toast.error('Enter valid material cost')
+    const mat = Number(matCost)
+    if (mat < 0) return toast.error('Material cost cannot be negative')
+    if (mat > 500_000) return toast.error('Material cost cannot exceed ₹5,00,000')
     setSaving(true)
     const labour = order!.quote_labour || 0
-    const mat = Number(matCost)
     const { error } = await supabase.from('orders').update({
       mat_cost_admin: mat,
       total_quote: labour + mat,
     }).eq('id', order!.id)
-    if (error) toast.error(error.message)
+    if (error) toast.error('Failed to confirm material cost, please try again')
     else { toast.success('Quote sent to customer ✓'); refetch() }
     setSaving(false)
   }
 
   async function confirmFinalPayment() {
+    if (!order!.upi_final_ref?.trim()) {
+      toast.error('Cannot confirm — no UTR/transaction reference on file')
+      return
+    }
     setSaving(true)
     const { error } = await supabase.from('orders').update({
       final_paid: true,
       status: 'in_progress',
     }).eq('id', order!.id)
-    if (error) toast.error(error.message)
+    if (error) toast.error('Failed to confirm payment, please try again')
     else { toast.success('Payment confirmed — work started ✓'); refetch() }
     setSaving(false)
   }
 
   async function confirmBookingPayment() {
+    if (!order!.upi_booking_ref?.trim()) {
+      toast.error('Cannot confirm — no UTR/transaction reference on file')
+      return
+    }
     setSaving(true)
     const { error } = await supabase.from('orders').update({ booking_paid: true }).eq('id', order!.id)
-    if (error) toast.error(error.message)
+    if (error) toast.error('Failed to confirm payment, please try again')
     else { toast.success('Booking payment confirmed ✓'); refetch() }
     setSaving(false)
   }
@@ -91,7 +101,9 @@ export default function AdminOrderDetail() {
     if (!selectedStore) return toast.error('Select a store')
     const store = stores.find(s => s.id === selectedStore)
     if (!store) return
-    const otp = String(Math.floor(1000 + Math.random() * 9000))
+    const arr = new Uint32Array(1)
+    crypto.getRandomValues(arr)
+    const otp = String(100000 + (arr[0] % 900000))
     setSaving(true)
     const { error } = await supabase.from('orders').update({
       mat_store_id: store.id,
@@ -99,7 +111,7 @@ export default function AdminOrderDetail() {
       mat_store_contact: store.contact,
       mat_collection_otp: otp,
     }).eq('id', order!.id)
-    if (error) toast.error(error.message)
+    if (error) toast.error('Failed to assign store, please try again')
     else { toast.success(`Store assigned! Collection OTP: ${otp}`); refetch() }
     setSaving(false)
   }
@@ -110,7 +122,8 @@ export default function AdminOrderDetail() {
     const workerStarted = ['inspecting', 'quote_sent', 'in_progress', 'done_uploaded'].includes(order!.status)
     const updatePayload: Record<string, any> = { status: 'cancelled' }
     if (workerStarted) updatePayload.worker_cancellation_pay = 100
-    await supabase.from('orders').update(updatePayload).eq('id', order!.id)
+    const { error } = await supabase.from('orders').update(updatePayload).eq('id', order!.id)
+    if (error) { toast.error('Failed to cancel order, please try again'); setSaving(false); return }
     toast.success('Order cancelled')
     navigate('/admin')
     setSaving(false)
@@ -207,7 +220,7 @@ export default function AdminOrderDetail() {
           <p className="font-bold text-slate-50 mb-3">Worker's Quote</p>
           <div className="flex flex-col gap-1 text-sm mb-3">
             <Row label="Labour" value={formatCurrency(order.quote_labour || 0)} />
-            {(order.quote_materials as QuoteMaterial[]).map((m, i) => (
+            {(Array.isArray(order.quote_materials) ? order.quote_materials as QuoteMaterial[] : []).map((m, i) => (
               <Row key={i} label={m.name} value={`${m.qty} ${m.unit}`} />
             ))}
           </div>

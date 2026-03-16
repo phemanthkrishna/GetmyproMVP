@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, forwardRef } from 'react'
 import { cn } from '../../lib/utils'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'accent' | 'ghost' | 'danger' | 'outline'
+  variant?: 'primary' | 'accent' | 'gradient' | 'ghost' | 'danger' | 'outline'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
 }
@@ -11,11 +11,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading, children, disabled, ...props }, ref) => {
     const base = 'inline-flex items-center justify-center font-bold rounded-xl btn-press transition-all disabled:opacity-50 disabled:cursor-not-allowed'
     const variants = {
-      primary: 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600',
-      accent:  'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600',
-      ghost:   'bg-slate-800 text-slate-300 hover:bg-slate-700',
-      danger:  'bg-red-500 text-white hover:bg-red-600',
-      outline: 'border-2 border-slate-600 text-slate-300 hover:border-slate-400',
+      primary:  'bg-blue-500 text-white shadow-brand hover:bg-blue-600',
+      accent:   'bg-orange-500 text-white shadow-accent hover:bg-orange-600',
+      gradient: 'gradient-brand text-white shadow-brand hover:opacity-95',
+      ghost:    'bg-[#111318] border border-[#1F2937] text-slate-300 hover:border-blue-500/40',
+      danger:   'bg-red-500 text-white hover:bg-red-600',
+      outline:  'border-2 border-[#1F2937] text-slate-300 hover:border-[#374151]',
     }
     const sizes = {
       sm: 'px-3 py-2 text-sm',

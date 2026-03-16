@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useOrder } from '../../hooks/useOrders'
@@ -21,6 +21,26 @@ export default function JobDetail() {
   const { session } = useAuth()
   const navigate = useNavigate()
 
+  const [hasActiveJob, setHasActiveJob] = useState(false)
+
+  useEffect(() => {
+    if (!session?.id) return
+    supabase
+      .from('orders')
+      .select('id')
+      .eq('worker_id', session.id)
+      .not('status', 'in', '("completed","cancelled")')
+      .then(({ data }) => setHasActiveJob((data?.length ?? 0) > 0))
+  }, [session?.id])
+
+  // OTP rate-limiting state (5 attempts → 60s lockout per OTP type)
+  const [arrivalAttempts, setArrivalAttempts] = useState(0)
+  const [arrivalLockedUntil, setArrivalLockedUntil] = useState<number | null>(null)
+  const [compAttempts, setCompAttempts] = useState(0)
+  const [compLockedUntil, setCompLockedUntil] = useState<number | null>(null)
+  const [matAttempts, setMatAttempts] = useState(0)
+  const [matLockedUntil, setMatLockedUntil] = useState<number | null>(null)
+
   const [arrivalOtp, setArrivalOtp] = useState('')
   const [compOtp, setCompOtp] = useState('')
   const [matCollectionOtp, setMatCollectionOtp] = useState('')
@@ -39,6 +59,10 @@ export default function JobDetail() {
 
   // Step 1: Accept job
   async function acceptJob() {
+    if (hasActiveJob) {
+      toast.error('Complete your current job before accepting a new one')
+      return
+    }
     setSaving(true)
     const { error } = await supabase.from('orders').update({
       worker_id: session!.id,
@@ -53,14 +77,23 @@ export default function JobDetail() {
 
   // Enter arrival OTP to confirm arrived
   async function confirmArrival() {
+    if (arrivalLockedUntil && Date.now() < arrivalLockedUntil) {
+      const secs = Math.ceil((arrivalLockedUntil - Date.now()) / 1000)
+      toast.error(`Too many wrong attempts. Try again in ${secs}s`)
+      return
+    }
     if (arrivalOtp !== order!.arrival_otp) {
+      const next = arrivalAttempts + 1
+      setArrivalAttempts(next)
+      if (next >= 5) { setArrivalLockedUntil(Date.now() + 60_000); setArrivalAttempts(0) }
       toast.error('Wrong OTP — ask customer to check their app')
       return
     }
+    setArrivalAttempts(0)
     setSaving(true)
-    await supabase.from('orders').update({ status: 'worker_visiting' }).eq('id', order!.id)
-    toast.success('Arrival confirmed! ✓')
-    refetch()
+    const { error } = await supabase.from('orders').update({ status: 'worker_visiting' }).eq('id', order!.id)
+    if (error) toast.error('Failed to confirm arrival, please try again')
+    else { toast.success('Arrival confirmed! ✓'); refetch() }
     setSaving(false)
   }
 
@@ -76,8 +109,10 @@ export default function JobDetail() {
   // Step 2: Send quote (from inspecting status)
   async function sendQuote() {
     if (!labour || isNaN(Number(labour))) return toast.error('Enter labour charges')
-    setSaving(true)
     const labourAmt = Number(labour)
+    if (labourAmt < 50) return toast.error('Labour charge must be at least ₹50')
+    if (labourAmt > 100_000) return toast.error('Labour charge cannot exceed ₹1,00,000')
+    setSaving(true)
     const validMats = needsMaterials ? materials.filter(m => m.name.trim()) : []
     const update: Record<string, any> = {
       quote_labour: labourAmt,
@@ -109,23 +144,42 @@ export default function JobDetail() {
   }
 
   async function confirmMatCollection() {
+    if (matLockedUntil && Date.now() < matLockedUntil) {
+      const secs = Math.ceil((matLockedUntil - Date.now()) / 1000)
+      toast.error(`Too many wrong attempts. Try again in ${secs}s`)
+      return
+    }
     if (matCollectionOtp !== order!.mat_collection_otp) {
+      const next = matAttempts + 1
+      setMatAttempts(next)
+      if (next >= 5) { setMatLockedUntil(Date.now() + 60_000); setMatAttempts(0) }
       toast.error('Wrong OTP — ask the store for their collection code')
       return
     }
+    setMatAttempts(0)
     setSaving(true)
-    await supabase.from('orders').update({ mat_collected: true }).eq('id', order!.id)
-    toast.success('Materials collected ✓')
-    refetch()
+    const { error } = await supabase.from('orders').update({ mat_collected: true }).eq('id', order!.id)
+    if (error) toast.error('Failed to confirm collection, please try again')
+    else { toast.success('Materials collected ✓'); refetch() }
     setSaving(false)
   }
 
   // Upload photo
   async function uploadPhoto(file: File) {
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error('Only JPEG, PNG, WebP or HEIC images are allowed')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5 MB')
+      return
+    }
     setSaving(true)
-    const path = `jobs/${order!.id}.${file.name.split('.').pop()}`
+    const ext = (file.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+    const path = `jobs/${order!.id}.${ext}`
     const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
-    if (error) { toast.error('Upload failed'); setSaving(false); return }
+    if (error) { toast.error('Upload failed, please try again'); setSaving(false); return }
     const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path)
     await supabase.from('orders').update({ job_photo_url: publicUrl }).eq('id', order!.id)
     toast.success('Photo uploaded ✓')
@@ -144,14 +198,23 @@ export default function JobDetail() {
   }
 
   async function verifyCompOtp() {
+    if (compLockedUntil && Date.now() < compLockedUntil) {
+      const secs = Math.ceil((compLockedUntil - Date.now()) / 1000)
+      toast.error(`Too many wrong attempts. Try again in ${secs}s`)
+      return
+    }
     if (compOtp !== order!.comp_otp) {
+      const next = compAttempts + 1
+      setCompAttempts(next)
+      if (next >= 5) { setCompLockedUntil(Date.now() + 60_000); setCompAttempts(0) }
       toast.error('Wrong OTP — ask customer to check their app')
       return
     }
+    setCompAttempts(0)
     setSaving(true)
-    await supabase.from('orders').update({ status: 'completed' }).eq('id', order!.id)
-    toast.success('Job complete! Payment will be credited ✓')
-    navigate('/worker')
+    const { error } = await supabase.from('orders').update({ status: 'completed' }).eq('id', order!.id)
+    if (error) toast.error('Failed to complete job, please try again')
+    else { toast.success('Job complete! Payment will be credited ✓'); navigate('/worker') }
     setSaving(false)
   }
 
@@ -177,7 +240,12 @@ export default function JobDetail() {
       </Card>
 
       {/* Step 1: Accept */}
-      {canAccept && (
+      {canAccept && hasActiveJob && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-4 text-orange-400 text-sm">
+          🔒 You're currently on a job — complete it before accepting new requests
+        </div>
+      )}
+      {canAccept && !hasActiveJob && (
         <div className="flex gap-3 mb-4">
           <Button variant="primary" className="flex-1" loading={saving} onClick={acceptJob}>
             Accept Job ✓
@@ -292,7 +360,7 @@ export default function JobDetail() {
           <p className="font-bold text-slate-50 mb-3">Your Quote</p>
           <div className="flex flex-col gap-2 text-sm">
             <Row label="Labour" value={formatCurrency(order.quote_labour || 0)} />
-            {(order.quote_materials as QuoteMaterial[]).map((m, i) => (
+            {(Array.isArray(order.quote_materials) ? order.quote_materials as QuoteMaterial[] : []).map((m, i) => (
               <Row key={i} label={m.name} value={`${m.qty} ${m.unit}`} />
             ))}
           </div>
@@ -328,7 +396,7 @@ export default function JobDetail() {
                 </div>
               </div>
               <p className="text-slate-400 text-sm mb-3">Enter the OTP given by the store to confirm collection:</p>
-              <OtpInput value={matCollectionOtp} onChange={setMatCollectionOtp} length={4} />
+              <OtpInput value={matCollectionOtp} onChange={setMatCollectionOtp} length={6} />
               <Button size="lg" variant="accent" loading={saving} onClick={confirmMatCollection} className="mt-4">
                 Confirm Collection ✓
               </Button>
@@ -365,9 +433,9 @@ export default function JobDetail() {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={e => {
+              onChange={async e => {
                 const f = e.target.files?.[0]
-                if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); uploadPhoto(f) }
+                if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); await uploadPhoto(f) }
               }}
             />
           </label>

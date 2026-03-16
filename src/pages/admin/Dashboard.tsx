@@ -33,13 +33,23 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState('All')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { fetchOrders() }, [])
+  useEffect(() => {
+    fetchOrders()
+    const channel = supabase
+      .channel('admin-dashboard-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function fetchOrders() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false })
+    if (error) console.error('Failed to load orders:', error.message)
     setOrders((data as Order[]) || [])
     setLoading(false)
   }

@@ -21,9 +21,13 @@ export function formatCurrency(amount: number): string {
 }
 
 export function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  const arr = new Uint32Array(1)
+  crypto.getRandomValues(arr)
+  return String(100000 + (arr[0] % 900000))
 }
 
 export function generateOrderId(): string {
-  return 'ORD-' + String(Math.floor(100000 + Math.random() * 900000))
+  const arr = new Uint32Array(1)
+  crypto.getRandomValues(arr)
+  return 'ORD-' + String(100000 + (arr[0] % 900000))
 }
