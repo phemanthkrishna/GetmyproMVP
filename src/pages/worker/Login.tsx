@@ -1,27 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { OtpInput } from '../../components/OtpInput'
 import { useAuth } from '../../context/AuthContext'
-import { sendOtp, verifyOtp } from '../../lib/twoFactor'
+import {
+  createRecaptchaVerifier,
+  sendOtp,
+  verifyOtp,
+  type ConfirmationResult,
+  type RecaptchaVerifier,
+} from '../../lib/firebaseOtp'
 import { supabase } from '../../lib/supabase'
 
 export default function WorkerLogin() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
-  const [sessionId, setSessionId] = useState('')
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const verifierRef = useRef<RecaptchaVerifier | null>(null)
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    verifierRef.current = createRecaptchaVerifier('recaptcha-container')
+    return () => {
+      verifierRef.current?.clear()
+      verifierRef.current = null
+    }
+  }, [])
+
   async function handleSendOtp() {
     if (phone.length < 10) return toast.error('Enter a valid phone number')
+    if (!verifierRef.current) return toast.error('reCAPTCHA not ready, refresh the page')
     setLoading(true)
     try {
-      // Check workers table directly — ensures full registration completed
       const { data: worker } = await supabase
         .from('workers')
         .select('id')
@@ -35,8 +50,8 @@ export default function WorkerLogin() {
         return
       }
 
-      const sid = await sendOtp(phone)
-      setSessionId(sid)
+      const result = await sendOtp(phone, verifierRef.current)
+      setConfirmationResult(result)
       setStep('otp')
       toast.success('OTP sent!')
     } catch (e: any) {
@@ -47,9 +62,10 @@ export default function WorkerLogin() {
 
   async function handleVerifyOtp() {
     if (otp.length < 6) return toast.error('Enter 6-digit OTP')
+    if (!confirmationResult) return toast.error('Please request OTP first')
     setLoading(true)
     try {
-      const ok = await verifyOtp(sessionId, otp)
+      const ok = await verifyOtp(confirmationResult, otp)
       if (!ok) {
         toast.error('Wrong OTP')
         setLoading(false)
@@ -79,6 +95,8 @@ export default function WorkerLogin() {
 
   return (
     <div className="min-h-dvh flex flex-col px-5 py-8">
+      <div id="recaptcha-container" />
+
       <button onClick={() => navigate('/')} className="text-slate-400 mb-8">← Back</button>
 
       <div className="mb-8">
