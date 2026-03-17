@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import type { Order } from '../types'
 
 const TIMEOUT_SECS = 30
+const SWIPE_THRESHOLD = 80
 
 interface WorkerMeta {
   service_categories: string[]
@@ -24,8 +25,30 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
   const [queue, setQueue] = useState<Order[]>([])
   const [countdown, setCountdown] = useState(TIMEOUT_SECS)
   const [accepting, setAccepting] = useState(false)
+  const [dragX, setDragX] = useState(0)
+  const [settling, setSettling] = useState(false)
   const navigate = useNavigate()
   const currentRef = useRef<Order | null>(null)
+  const touchStartX = useRef(0)
+  const dragActiveRef = useRef(false)
+
+  // Lock body scroll while screen is visible
+  useEffect(() => {
+    if (queue.length > 0) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+  }, [queue.length])
 
   // ── Load and watch worker meta ──────────────────────────────────────
   useEffect(() => {
@@ -97,7 +120,6 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, payload => {
         const updated = payload.new as Order
-        // Remove from queue if taken by another worker
         if (updated.worker_id && updated.worker_id !== workerId) {
           setQueue(prev => prev.filter(o => o.id !== updated.id))
         }
@@ -139,7 +161,6 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
     if (!current || accepting) return
     setAccepting(true)
 
-    // Atomic claim — only succeeds if still unassigned
     const { data, error } = await supabase
       .from('orders')
       .update({ worker_id: workerId, worker_name: workerName, worker_phone: workerPhone })
@@ -165,78 +186,197 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
     await doDecline(current)
   }
 
+  // ── Swipe handlers ───────────────────────────────────────────────────
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    dragActiveRef.current = true
+    setSettling(false)
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (!dragActiveRef.current) return
+    const dx = e.touches[0].clientX - touchStartX.current
+    setDragX(dx)
+  }
+
+  function onTouchEnd() {
+    dragActiveRef.current = false
+    const dx = dragX
+    setSettling(true)
+    setDragX(0)
+    if (dx > SWIPE_THRESHOLD) handleAccept()
+    else if (dx < -SWIPE_THRESHOLD) handleDecline()
+  }
+
   if (!current) return null
 
-  // Countdown ring math
-  const radius = 44
-  const circumference = 2 * Math.PI * radius
-  const dashOffset = circumference * (1 - countdown / TIMEOUT_SECS)
+  const swipeProgress = Math.min(Math.abs(dragX) / SWIPE_THRESHOLD, 1)
+  const swipingRight = dragX > 15
+  const swipingLeft = dragX < -15
   const urgent = countdown <= 8
+  const timerPct = (countdown / TIMEOUT_SECS) * 100
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-slate-950 px-6 py-12">
-      {/* Top label */}
-      <div className="text-center">
-        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Incoming Job Request</p>
+    <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col overflow-hidden select-none touch-none">
+
+      {/* Background color wash on swipe */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: swipingRight
+            ? `rgba(34,197,94,${swipeProgress * 0.18})`
+            : swipingLeft
+            ? `rgba(239,68,68,${swipeProgress * 0.18})`
+            : 'transparent',
+          transition: dragActiveRef.current ? 'none' : 'background 0.3s ease',
+        }}
+      />
+
+      {/* Countdown bar */}
+      <div className="w-full h-1.5 bg-slate-800 shrink-0">
+        <div
+          className={`h-full ${urgent ? 'bg-red-500' : 'bg-orange-500'}`}
+          style={{ width: `${timerPct}%`, transition: 'width 1s linear' }}
+        />
+      </div>
+
+      {/* Header */}
+      <div className="px-6 pt-5 text-center shrink-0">
+        <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-1.5 mb-3">
+          <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+          <span className="text-orange-400 text-xs font-bold uppercase tracking-widest">Incoming Job</span>
+        </div>
+        <p className={`text-sm font-bold ${urgent ? 'text-red-400' : 'text-slate-500'}`}>
+          {urgent ? `⚠️ Auto-declining in ${countdown}s` : `${countdown}s to respond`}
+        </p>
         {queue.length > 1 && (
-          <p className="text-slate-500 text-xs mt-1">{queue.length - 1} more waiting</p>
+          <p className="text-slate-600 text-xs mt-1">{queue.length - 1} more in queue</p>
         )}
       </div>
 
-      {/* Animated rings + emoji */}
-      <div className="relative flex items-center justify-center">
-        {/* Pulse rings */}
-        <div className="absolute w-64 h-64 rounded-full border border-orange-500/10 animate-ping" style={{ animationDuration: '2s' }} />
-        <div className="absolute w-56 h-56 rounded-full border border-orange-500/15 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.4s' }} />
-        <div className="absolute w-48 h-48 rounded-full border border-orange-500/20 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.8s' }} />
+      {/* Card area */}
+      <div className="flex-1 flex items-center justify-center px-5 relative overflow-hidden">
 
-        {/* Countdown SVG ring */}
-        <svg className="absolute w-44 h-44 -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="#1e293b" strokeWidth="5" />
-          <circle
-            cx="50" cy="50" r={radius}
-            fill="none"
-            stroke={urgent ? '#ef4444' : '#f97316'}
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            className="transition-all duration-1000 ease-linear"
-          />
-        </svg>
+        {/* Decline indicator */}
+        <div
+          className="absolute left-4 z-10 flex flex-col items-center gap-2 pointer-events-none"
+          style={{ opacity: swipingLeft ? swipeProgress : 0.12, transition: 'opacity 0.1s' }}
+        >
+          <div
+            className="w-16 h-16 rounded-full border-2 border-red-500 bg-red-500/20 flex items-center justify-center"
+            style={{ transform: `scale(${0.7 + swipeProgress * 0.4})` }}
+          >
+            <span className="text-red-400 text-3xl font-black leading-none">✕</span>
+          </div>
+          <span className="text-red-400 text-xs font-black tracking-wider">DECLINE</span>
+        </div>
 
-        {/* Emoji core */}
-        <div className="w-36 h-36 rounded-full bg-slate-900 border-2 border-orange-500/30 flex flex-col items-center justify-center z-10 shadow-2xl">
-          <span className="text-6xl">{current.service_emoji}</span>
+        {/* Accept indicator */}
+        <div
+          className="absolute right-4 z-10 flex flex-col items-center gap-2 pointer-events-none"
+          style={{ opacity: swipingRight ? swipeProgress : 0.12, transition: 'opacity 0.1s' }}
+        >
+          <div
+            className="w-16 h-16 rounded-full border-2 border-green-500 bg-green-500/20 flex items-center justify-center"
+            style={{ transform: `scale(${0.7 + swipeProgress * 0.4})` }}
+          >
+            <span className="text-green-400 text-3xl font-black leading-none">✓</span>
+          </div>
+          <span className="text-green-400 text-xs font-black tracking-wider">ACCEPT</span>
+        </div>
+
+        {/* Swipeable card */}
+        <div
+          className="w-full rounded-3xl overflow-hidden"
+          style={{
+            transform: `translateX(${dragX}px) rotate(${dragX * 0.025}deg)`,
+            transition: settling && !dragActiveRef.current ? 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+            boxShadow: swipingRight
+              ? `0 8px 60px rgba(34,197,94,${swipeProgress * 0.5}), 0 2px 20px rgba(0,0,0,0.6)`
+              : swipingLeft
+              ? `0 8px 60px rgba(239,68,68,${swipeProgress * 0.5}), 0 2px 20px rgba(0,0,0,0.6)`
+              : '0 8px 40px rgba(0,0,0,0.6)',
+          }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* Card gradient top */}
+          <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/60 rounded-3xl">
+
+            {/* Emoji section */}
+            <div className="pt-8 pb-5 flex flex-col items-center gap-1">
+              <div className="w-28 h-28 rounded-3xl bg-slate-700/60 flex items-center justify-center shadow-inner mb-2">
+                <span className="text-7xl">{current.service_emoji}</span>
+              </div>
+              <h2 className="text-white font-black text-3xl text-center">{current.service}</h2>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-slate-700/50 mx-5" />
+
+            {/* Details */}
+            <div className="px-6 py-5 flex flex-col gap-3">
+              {/* Address */}
+              <div className="flex items-start gap-3">
+                <span className="text-slate-500 text-lg mt-0.5">📍</span>
+                <p className="text-slate-300 text-sm leading-relaxed flex-1">{current.address}</p>
+              </div>
+
+              {/* Earnings */}
+              <div className="flex items-center gap-3">
+                <span className="text-slate-500 text-lg">💰</span>
+                <div>
+                  <p className="text-green-400 font-black text-lg leading-tight">₹100 guaranteed</p>
+                  <p className="text-slate-500 text-xs">Visit charge · paid upfront</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Swipe hint */}
+            <div className="px-6 pb-6">
+              <div className="flex items-center justify-between text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+                    <path d="M7 1L1 7L7 13M1 7H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="text-xs font-semibold">Decline</span>
+                </div>
+                <div className="flex items-center gap-1 opacity-40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold">Accept</span>
+                  <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+                    <path d="M11 1L17 7L11 13M17 7H1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Job details */}
-      <div className="w-full text-center space-y-1">
-        <h2 className="text-white font-black font-heading text-3xl">{current.service}</h2>
-        <p className="text-slate-400 text-sm truncate">{current.address}</p>
-        <p className="text-slate-600 text-xs">₹100 visit charge guaranteed</p>
-        <p className={`text-sm font-bold mt-3 transition-colors ${urgent ? 'text-red-400' : 'text-slate-400'}`}>
-          {urgent ? `⚠️ Auto-decline in ${countdown}s` : `Auto-decline in ${countdown}s`}
-        </p>
-      </div>
-
-      {/* Buttons */}
-      <div className="w-full flex gap-4">
+      {/* Tap buttons (fallback for non-swipe) */}
+      <div className="px-5 pb-10 pt-4 flex gap-3 shrink-0">
         <button
+          onTouchEnd={e => { e.preventDefault(); handleDecline() }}
           onClick={handleDecline}
-          className="flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl bg-slate-800 border border-slate-700 active:scale-95 transition-transform"
+          className="flex-1 py-4 rounded-2xl bg-slate-800 border border-slate-700 active:bg-red-500/20 active:border-red-500/40 transition-colors"
         >
-          <span className="text-2xl">✕</span>
-          <span className="text-white font-bold text-sm">Decline</span>
+          <span className="text-white font-bold text-base">✕  Decline</span>
         </button>
         <button
+          onTouchEnd={e => { e.preventDefault(); if (!accepting) handleAccept() }}
           onClick={handleAccept}
           disabled={accepting}
-          className="flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl bg-green-500 active:scale-95 transition-transform disabled:opacity-60"
+          className="flex-1 py-4 rounded-2xl bg-green-500 active:bg-green-600 transition-colors disabled:opacity-60"
         >
-          <span className="text-2xl">{accepting ? '⏳' : '✓'}</span>
-          <span className="text-white font-bold text-sm">{accepting ? 'Accepting...' : 'Accept'}</span>
+          <span className="text-white font-bold text-base">
+            {accepting ? '⏳  Accepting...' : '✓  Accept'}
+          </span>
         </button>
       </div>
     </div>

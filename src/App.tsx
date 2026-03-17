@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { JobCallScreen } from './components/JobCallScreen'
+import { CustomerAlertNotifier } from './components/CustomerAlertNotifier'
 
 // Pages
 import Landing from './pages/Landing'
@@ -48,6 +49,9 @@ export default function App() {
         workerName={session.name}
         workerPhone={session.phone}
       />
+    )}
+    {session?.role === 'customer' && (
+      <CustomerAlertNotifier customerId={session.id} />
     )}
     <Routes>
       <Route path="/" element={<Landing />} />
