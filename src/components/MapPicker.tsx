@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { MapPin, Crosshair, X, Check } from 'lucide-react'
@@ -116,7 +117,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
     onConfirm(pin.lat, pin.lng, address)
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9998] flex flex-col bg-slate-950">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-slate-900 border-b border-slate-700 shrink-0">
@@ -184,6 +185,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
           Confirm Location
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
