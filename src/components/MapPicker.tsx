@@ -129,6 +129,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
 
       {/* Map */}
       <div className="flex-1 relative">
+        <div className="absolute inset-0">
         <MapContainer
           center={[center.lat, center.lng]}
           zoom={15}
@@ -143,6 +144,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
           {recenter !== undefined && <RecenterMap lat={center.lat} lng={center.lng} />}
           <Marker position={[pin.lat, pin.lng]} icon={customerIcon} />
         </MapContainer>
+        </div>
 
         {/* Center crosshair hint */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[1000]">
