@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { MapPin, Crosshair, X, Check } from 'lucide-react'
@@ -58,6 +58,16 @@ function TapHandler({ onTap }: { onTap: (pos: LatLng) => void }) {
   useMapEvents({
     click(e) { onTap({ lat: e.latlng.lat, lng: e.latlng.lng }) },
   })
+  return null
+}
+
+// Forces Leaflet to recalculate map size after the container renders
+function InvalidateSize() {
+  const map = useMap()
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 100)
+    return () => clearTimeout(t)
+  }, [])
   return null
 }
 
@@ -128,22 +138,23 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
       </div>
 
       {/* Map */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" style={{ minHeight: 0 }}>
         <div className="absolute inset-0">
-        <MapContainer
-          center={[center.lat, center.lng]}
-          zoom={15}
-          style={{ width: '100%', height: '100%' }}
-          zoomControl={false}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-          />
-          <TapHandler onTap={handleTap} />
-          {recenter !== undefined && <RecenterMap lat={center.lat} lng={center.lng} />}
-          <Marker position={[pin.lat, pin.lng]} icon={customerIcon} />
-        </MapContainer>
+          <MapContainer
+            center={[center.lat, center.lng]}
+            zoom={15}
+            style={{ width: '100%', height: '100%' }}
+            zoomControl={false}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+            />
+            <InvalidateSize />
+            <TapHandler onTap={handleTap} />
+            {recenter !== undefined && <RecenterMap lat={center.lat} lng={center.lng} />}
+            <Marker position={[pin.lat, pin.lng]} icon={customerIcon} />
+          </MapContainer>
         </div>
 
         {/* Center crosshair hint */}
