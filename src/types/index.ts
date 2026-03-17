@@ -48,6 +48,8 @@ export interface Order {
   service: string
   service_emoji: string
   address: string
+  customer_lat?: number
+  customer_lng?: number
   problem_description?: string
   status: OrderStatus
   booking_amt: number
