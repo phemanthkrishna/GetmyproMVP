@@ -4,7 +4,6 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import L from 'leaflet'
 import { MapPin, Crosshair, X, Check } from 'lucide-react'
 
-// Fix Leaflet default marker icons with Vite
 const customerIcon = L.divIcon({
   html: `<div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">
     <svg viewBox="0 0 24 24" fill="#f97316" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
@@ -25,7 +24,6 @@ interface Props {
   onClose: () => void
 }
 
-// Reverse geocode using OpenStreetMap Nominatim (free, no API key)
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
     const res = await fetch(
@@ -47,34 +45,34 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
   }
 }
 
-// Component to re-center map
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap()
   useEffect(() => { map.setView([lat, lng], 17) }, [lat, lng])
   return null
 }
 
-// Tap handler inside MapContainer
 function TapHandler({ onTap }: { onTap: (pos: LatLng) => void }) {
-  useMapEvents({
-    click(e) { onTap({ lat: e.latlng.lat, lng: e.latlng.lng }) },
-  })
+  useMapEvents({ click(e) { onTap({ lat: e.latlng.lat, lng: e.latlng.lng }) } })
   return null
 }
 
-// Forces Leaflet to recalculate map size after the container renders
 function InvalidateSize() {
   const map = useMap()
   useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 100)
-    return () => clearTimeout(t)
+    // Fire multiple times to handle any layout settling
+    const t1 = setTimeout(() => map.invalidateSize(), 50)
+    const t2 = setTimeout(() => map.invalidateSize(), 300)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [])
   return null
 }
 
+const HEADER_H = 56  // px
+const FOOTER_H = 96  // px
+
 export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props) {
   const defaultLat = initialLat ?? 12.9716
-  const defaultLng = initialLng ?? 77.5946 // Bangalore default
+  const defaultLng = initialLng ?? 77.5946
 
   const [pin, setPin] = useState<LatLng>({ lat: defaultLat, lng: defaultLng })
   const [address, setAddress] = useState('')
@@ -83,29 +81,20 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const [center, setCenter] = useState<LatLng>({ lat: defaultLat, lng: defaultLng })
   const [recenter, setRecenter] = useState(false)
 
-  // Reverse geocode whenever pin changes
   useEffect(() => {
     setGeocoding(true)
-    reverseGeocode(pin.lat, pin.lng).then(addr => {
-      setAddress(addr)
-      setGeocoding(false)
-    })
+    reverseGeocode(pin.lat, pin.lng).then(addr => { setAddress(addr); setGeocoding(false) })
   }, [pin.lat, pin.lng])
 
-  function handleTap(pos: LatLng) {
-    setPin(pos)
-  }
+  function handleTap(pos: LatLng) { setPin(pos) }
 
-  function useMyLocation() {
+  function handleMyLocation() {
     if (!navigator.geolocation) return
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       pos => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        setPin(loc)
-        setCenter(loc)
-        setRecenter(r => !r)
-        setLocating(false)
+        setPin(loc); setCenter(loc); setRecenter(r => !r); setLocating(false)
       },
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 8000 }
@@ -117,74 +106,70 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
     onConfirm(pin.lat, pin.lng, address)
   }
 
+  const mapH = `calc(100dvh - ${HEADER_H}px - ${FOOTER_H}px)`
+
   return createPortal(
-    <div className="fixed inset-0 z-[9998] flex flex-col bg-slate-950">
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998, display: 'flex', flexDirection: 'column', background: '#09090b' }}>
+
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-slate-900 border-b border-slate-700 shrink-0">
-        <button onClick={onClose} className="text-slate-400 p-1">
+      <div style={{ height: HEADER_H, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
+        <button onClick={onClose} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
           <X size={20} />
         </button>
-        <div>
-          <p className="text-slate-50 font-bold text-sm">Pick your location</p>
-          <p className="text-slate-500 text-xs">Tap on the map to set your address</p>
+        <div style={{ flex: 1 }}>
+          <p style={{ color: '#f8fafc', fontWeight: 700, fontSize: 14, margin: 0 }}>Pick your location</p>
+          <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>Tap on the map to set your address</p>
         </div>
         <button
-          onClick={useMyLocation}
+          onClick={handleMyLocation}
           disabled={locating}
-          className="ml-auto flex items-center gap-1.5 bg-slate-700 border border-slate-600 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-300"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#cbd5e1', cursor: 'pointer', opacity: locating ? 0.6 : 1 }}
         >
-          <Crosshair size={13} className={locating ? 'animate-spin' : ''} />
+          <Crosshair size={13} />
           {locating ? 'Locating…' : 'My Location'}
         </button>
       </div>
 
-      {/* Map */}
-      <div className="flex-1 relative" style={{ minHeight: 0 }}>
-        <div className="absolute inset-0">
-          <MapContainer
-            center={[center.lat, center.lng]}
-            zoom={15}
-            style={{ width: '100%', height: '100%' }}
-            zoomControl={false}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-            />
-            <InvalidateSize />
-            <TapHandler onTap={handleTap} />
-            {recenter !== undefined && <RecenterMap lat={center.lat} lng={center.lng} />}
-            <Marker position={[pin.lat, pin.lng]} icon={customerIcon} />
-          </MapContainer>
-        </div>
-
-        {/* Center crosshair hint */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[1000]">
-          <div className="w-1 h-1 rounded-full bg-orange-500 opacity-60" />
-        </div>
+      {/* Map — explicit pixel height so Leaflet always has a non-zero container */}
+      <div style={{ width: '100%', height: mapH, flexShrink: 0, position: 'relative' }}>
+        <MapContainer
+          key={`${defaultLat}-${defaultLng}`}
+          center={[center.lat, center.lng]}
+          zoom={15}
+          style={{ width: '100%', height: '100%' }}
+          zoomControl={false}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+          />
+          <InvalidateSize />
+          <TapHandler onTap={handleTap} />
+          {recenter !== undefined && <RecenterMap lat={center.lat} lng={center.lng} />}
+          <Marker position={[pin.lat, pin.lng]} icon={customerIcon} />
+        </MapContainer>
       </div>
 
-      {/* Address bar + confirm */}
-      <div className="px-4 py-4 bg-slate-900 border-t border-slate-700 shrink-0">
-        <div className="flex items-start gap-3 mb-3">
-          <MapPin size={18} className="text-orange-400 mt-0.5 shrink-0" />
-          <p className="text-slate-200 text-sm leading-relaxed flex-1">
-            {geocoding ? (
-              <span className="text-slate-500 animate-pulse">Getting address…</span>
-            ) : (
-              address || 'Tap the map to select a location'
-            )}
+      {/* Footer */}
+      <div style={{ height: FOOTER_H, flexShrink: 0, padding: '12px 16px', background: '#0f172a', borderTop: '1px solid #1e293b' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+          <MapPin size={18} color="#f97316" style={{ marginTop: 2, flexShrink: 0 }} />
+          <p style={{ color: '#e2e8f0', fontSize: 13, lineHeight: 1.4, margin: 0, flex: 1 }}>
+            {geocoding
+              ? <span style={{ color: '#475569' }}>Getting address…</span>
+              : (address || 'Tap the map to select a location')}
           </p>
         </div>
         <button
           onClick={handleConfirm}
           disabled={!address || geocoding}
-          className="w-full bg-orange-500 disabled:opacity-40 text-white font-bold rounded-2xl py-3.5 flex items-center justify-center gap-2 text-sm active:scale-95 transition-transform"
+          style={{ width: '100%', background: !address || geocoding ? '#7c3d1f' : '#f97316', opacity: !address || geocoding ? 0.5 : 1, color: '#fff', fontWeight: 700, borderRadius: 16, padding: '12px 0', border: 'none', cursor: !address || geocoding ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}
         >
           <Check size={16} />
           Confirm Location
         </button>
       </div>
+
     </div>,
     document.body
   )
