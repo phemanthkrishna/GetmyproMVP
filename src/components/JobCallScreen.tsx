@@ -367,7 +367,7 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
           onClick={handleDecline}
           className="flex-1 py-4 rounded-2xl bg-slate-800 border border-slate-700 active:bg-red-500/20 active:border-red-500/40 transition-colors"
         >
-          <span className="text-white font-bold text-base">✕  Decline</span>
+          <span className="text-[var(--text)] font-bold text-base">✕  Decline</span>
         </button>
         <button
           onTouchEnd={e => { e.preventDefault(); if (!accepting) handleAccept() }}

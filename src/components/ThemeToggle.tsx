@@ -15,8 +15,8 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
       style={{
-        /* 44px touch target wrapper */
-        width: 44,
+        /* 48px wide to contain the pill, 44px tall for touch target */
+        width: 48,
         height: 44,
         display: 'flex',
         alignItems: 'center',

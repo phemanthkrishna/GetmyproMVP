@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useJsApiLoader, GoogleMap, Marker, Autocomplete } from '@react-google-maps/api'
 import { MapPin, Crosshair, X, Check, Search } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const LIBRARIES: ('places')[] = ['places']
@@ -64,6 +65,23 @@ const pinIcon = (color: string, size: number) =>
   `data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="${encodeURIComponent(color)}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
 
 export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  const C = {
+    bg:        isDark ? '#09090B'  : '#FAFAFA',
+    surface:   isDark ? '#131316'  : '#FFFFFF',
+    border:    isDark ? '#27272A'  : '#E4E4E7',
+    text:      isDark ? '#FAFAFA'  : '#09090B',
+    muted:     isDark ? '#A1A1AA'  : '#71717A',
+    subtle:    isDark ? '#A1A1AA'  : '#A1A1AA',
+    btnBg:     isDark ? '#1C1C1F'  : '#F4F4F5',
+    btnBorder: isDark ? '#27272A'  : '#D4D4D8',
+    btnText:   isDark ? '#A1A1AA'  : '#52525B',
+    addrText:  isDark ? '#FAFAFA'  : '#27272A',
+    loadingBg: isDark ? '#131316'  : '#F4F4F5',
+  }
+
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: MAPS_KEY,
@@ -72,6 +90,12 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
 
   const defaultLat = initialLat ?? 12.9716
   const defaultLng = initialLng ?? 77.5946
+
+  // Stable reference — never recreated on re-renders.
+  // If we pass a new object every render, @react-google-maps/api's center
+  // useEffect fires on every re-render and panTo() resets the map position,
+  // undoing any imperative panTo/setZoom calls (e.g. My Location, autocomplete).
+  const initialCenter = useRef<LatLng>({ lat: defaultLat, lng: defaultLng })
 
   const [pin, setPin] = useState<LatLng>({ lat: defaultLat, lng: defaultLng })
   const [address, setAddress] = useState('')
@@ -133,21 +157,21 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const mapH = `calc(100dvh - ${HEADER_H}px - ${SEARCH_H}px - ${FOOTER_H}px)`
 
   return createPortal(
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998, display: 'flex', flexDirection: 'column', background: '#09090b' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998, display: 'flex', flexDirection: 'column', background: C.bg }}>
 
       {/* Header */}
-      <div style={{ height: HEADER_H, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
-        <button onClick={onClose} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+      <div style={{ height: HEADER_H, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
+        <button onClick={onClose} style={{ color: C.subtle, background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
           <X size={20} />
         </button>
         <div style={{ flex: 1 }}>
-          <p style={{ color: '#f8fafc', fontWeight: 700, fontSize: 14, margin: 0 }}>Pick your location</p>
-          <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>Search or tap the map</p>
+          <p style={{ color: C.text, fontWeight: 700, fontSize: 14, margin: 0 }}>Pick your location</p>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>Search or tap the map</p>
         </div>
         <button
           onClick={handleMyLocation}
           disabled={locating}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#cbd5e1', cursor: 'pointer', opacity: locating ? 0.6 : 1 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.btnBg, border: `1px solid ${C.btnBorder}`, borderRadius: 12, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: C.btnText, cursor: 'pointer', opacity: locating ? 0.6 : 1 }}
         >
           <Crosshair size={13} />
           {locating ? 'Locating…' : 'My Location'}
@@ -155,8 +179,8 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
       </div>
 
       {/* Search bar */}
-      <div style={{ height: SEARCH_H, flexShrink: 0, padding: '8px 16px', background: '#0f172a', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Search size={16} color="#475569" style={{ flexShrink: 0 }} />
+      <div style={{ height: SEARCH_H, flexShrink: 0, padding: '8px 16px', background: C.surface, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Search size={16} color={C.subtle} style={{ flexShrink: 0 }} />
         {isLoaded ? (
           <Autocomplete
             onLoad={onAutocompleteLoad}
@@ -171,7 +195,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: '#f8fafc',
+                color: C.text,
                 fontSize: 14,
                 fontFamily: 'inherit',
               }}
@@ -182,7 +206,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
             type="text"
             placeholder="Loading search…"
             disabled
-            style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#475569', fontSize: 14, fontFamily: 'inherit' }}
+            style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: C.subtle, fontSize: 14, fontFamily: 'inherit' }}
           />
         )}
       </div>
@@ -192,11 +216,11 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
         {isLoaded ? (
           <GoogleMap
             mapContainerStyle={{ width: '100%', height: '100%' }}
-            center={{ lat: defaultLat, lng: defaultLng }}
+            center={initialCenter.current}
             zoom={15}
             onClick={handleMapClick}
             onLoad={onMapLoad}
-            options={{ disableDefaultUI: true, zoomControl: true, styles: darkStyles }}
+            options={{ disableDefaultUI: true, zoomControl: true, styles: isDark ? darkStyles : [] }}
           >
             <Marker
               position={pin}
@@ -208,26 +232,26 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
             />
           </GoogleMap>
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111318', color: '#475569', fontSize: 14 }}>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.loadingBg, color: C.subtle, fontSize: 14 }}>
             Loading map…
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div style={{ height: FOOTER_H, flexShrink: 0, padding: '12px 16px', background: '#0f172a', borderTop: '1px solid #1e293b' }}>
+      <div style={{ height: FOOTER_H, flexShrink: 0, padding: '12px 16px', background: C.surface, borderTop: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
           <MapPin size={18} color="#f97316" style={{ marginTop: 2, flexShrink: 0 }} />
-          <p style={{ color: '#e2e8f0', fontSize: 13, lineHeight: 1.4, margin: 0, flex: 1 }}>
+          <p style={{ color: C.addrText, fontSize: 13, lineHeight: 1.4, margin: 0, flex: 1 }}>
             {geocoding
-              ? <span style={{ color: '#475569' }}>Getting address…</span>
+              ? <span style={{ color: C.muted }}>Getting address…</span>
               : (address || 'Tap the map to select a location')}
           </p>
         </div>
         <button
           onClick={handleConfirm}
           disabled={!address || geocoding}
-          style={{ width: '100%', background: !address || geocoding ? '#7c3d1f' : '#f97316', opacity: !address || geocoding ? 0.5 : 1, color: '#fff', fontWeight: 700, borderRadius: 16, padding: '12px 0', border: 'none', cursor: !address || geocoding ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}
+          style={{ width: '100%', background: '#f97316', opacity: !address || geocoding ? 0.4 : 1, color: '#fff', fontWeight: 700, borderRadius: 16, padding: '12px 0', border: 'none', cursor: !address || geocoding ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}
         >
           <Check size={16} />
           Confirm Location

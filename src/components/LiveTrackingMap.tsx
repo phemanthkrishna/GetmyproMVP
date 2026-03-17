@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api'
 import { ref, onValue } from 'firebase/database'
 import { database } from '../lib/firebase'
+import { useTheme } from '../context/ThemeContext'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 
@@ -31,13 +32,25 @@ interface Props {
 interface WorkerPos { lat: number; lng: number }
 
 export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng }: Props) {
+  const { theme } = useTheme()
+
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: MAPS_KEY,
   })
 
   const [workerPos, setWorkerPos] = useState<WorkerPos | null>(null)
+  const [mapReady, setMapReady] = useState(false)
   const mapRef = useRef<google.maps.Map | null>(null)
+
+  // Stable initial center — never recreated on re-renders.
+  // Passing a new object every render causes the library's center useEffect to
+  // call panTo() on every GPS update, fighting against our fitBounds logic.
+  const initialCenter = useRef<WorkerPos>(
+    customerLat && customerLng
+      ? { lat: customerLat, lng: customerLng }
+      : { lat: 12.9716, lng: 77.5946 }
+  )
 
   useEffect(() => {
     const locRef = ref(database, `worker_locations/${workerId}`)
@@ -50,9 +63,10 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
     return () => unsub()
   }, [workerId])
 
-  // Fit bounds when positions update
+  // Fit bounds after map is ready and whenever positions change.
+  // Depends on mapReady (not isLoaded) so mapRef.current is guaranteed set.
   useEffect(() => {
-    if (!mapRef.current || !isLoaded || !window.google) return
+    if (!mapReady || !mapRef.current || !window.google) return
     if (workerPos && customerLat && customerLng) {
       const bounds = new window.google.maps.LatLngBounds()
       bounds.extend(workerPos)
@@ -63,17 +77,12 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
     } else if (customerLat && customerLng) {
       mapRef.current.panTo({ lat: customerLat, lng: customerLng })
     }
-  }, [workerPos, customerLat, customerLng, isLoaded])
+  }, [workerPos, customerLat, customerLng, mapReady])
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map
+    setMapReady(true)
   }, [])
-
-  const defaultCenter = workerPos
-    ? workerPos
-    : customerLat && customerLng
-      ? { lat: customerLat, lng: customerLng }
-      : { lat: 12.9716, lng: 77.5946 }
 
   return (
     <div>
@@ -81,10 +90,10 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
         {isLoaded ? (
           <GoogleMap
             mapContainerStyle={{ width: '100%', height: '100%' }}
-            center={defaultCenter}
+            center={initialCenter.current}
             zoom={15}
             onLoad={onMapLoad}
-            options={{ disableDefaultUI: true, styles: darkStyles }}
+            options={{ disableDefaultUI: true, styles: theme === 'dark' ? darkStyles : [] }}
           >
             {customerLat && customerLng && (
               <Marker

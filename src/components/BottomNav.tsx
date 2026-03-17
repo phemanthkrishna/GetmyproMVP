@@ -9,7 +9,7 @@ interface NavItem {
 
 export function BottomNav({ items }: { items: NavItem[] }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-slate-900 border-t border-slate-700 flex z-50">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[var(--surface)] border-t border-[var(--border)] flex z-50">
       {items.map(({ to, icon: Icon, label }) => (
         <NavLink
           key={to}

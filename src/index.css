@@ -129,6 +129,19 @@ h1, h2, h3, h4, h5, h6 {
 [data-theme="light"] .border-slate-700 { border-color: #E4E4E7 !important; }
 [data-theme="light"] .border-slate-600 { border-color: #D4D4D8 !important; }
 
+/* divide (table/list dividers) */
+[data-theme="light"] .divide-slate-700 > * + * { border-color: #E4E4E7 !important; }
+[data-theme="light"] .divide-slate-800 > * + * { border-color: #F4F4F5 !important; }
+
+/* hover states */
+[data-theme="light"] .hover\:bg-slate-800:hover { background-color: #F4F4F5 !important; }
+[data-theme="light"] .hover\:bg-slate-900:hover { background-color: #EFEFEF !important; }
+[data-theme="light"] .hover\:bg-slate-700:hover { background-color: #E8E8EB !important; }
+[data-theme="light"] .hover\:bg-slate-600:hover { background-color: #E0E0E4 !important; }
+
+/* Semi-transparent bg variants */
+[data-theme="light"] .bg-slate-600\/40 { background-color: rgba(161,161,170,0.2) !important; }
+
 /* Inline inputs/selects/textareas on pages (bg-slate-900 pattern) */
 [data-theme="light"] textarea { background-color: #F4F4F5 !important; color: #09090B !important; border-color: #E4E4E7 !important; }
 
