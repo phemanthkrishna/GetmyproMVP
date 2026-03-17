@@ -14,9 +14,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary:  'bg-blue-500 text-white shadow-brand hover:bg-blue-600',
       accent:   'bg-orange-500 text-white shadow-accent hover:bg-orange-600',
       gradient: 'gradient-brand text-white shadow-brand hover:opacity-95',
-      ghost:    'bg-[#111318] border border-[#1F2937] text-slate-300 hover:border-blue-500/40',
+      ghost:    'bg-[var(--surface)] border border-[var(--border)] text-[var(--muted)] hover:border-blue-500/40',
       danger:   'bg-red-500 text-white hover:bg-red-600',
-      outline:  'border-2 border-[#1F2937] text-slate-300 hover:border-[#374151]',
+      outline:  'border-2 border-[var(--border)] text-[var(--muted)] hover:border-blue-500/30',
     }
     const sizes = {
       sm: 'px-3 py-2 text-sm',

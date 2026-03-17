@@ -108,7 +108,7 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
             )}
           </GoogleMap>
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111318', color: '#475569', fontSize: 13 }}>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', color: 'var(--muted)', fontSize: 13 }}>
             Loading map…
           </div>
         )}

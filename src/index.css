@@ -38,6 +38,22 @@
   --card:       #FFFFFF;
 }
 
+/* ─── Global semantic token usage ───────────────────────────────────────── */
+/* Placeholders always use muted token */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* Native select background follows surface token */
+select {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
 /* ─── Theme transition — PDF: 200ms small interaction ───────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -110,9 +126,11 @@ h1, h2, h3, h4, h5, h6 {
 [data-theme="light"] .border-slate-700 { border-color: #E4E4E7 !important; }
 [data-theme="light"] .border-slate-600 { border-color: #D4D4D8 !important; }
 
-/* Placeholders */
-[data-theme="light"] .placeholder-slate-500::placeholder { color: #A1A1AA !important; }
-[data-theme="light"] .placeholder-slate-600::placeholder { color: #A1A1AA !important; }
+/* Inline inputs/selects/textareas on pages (bg-slate-900 pattern) */
+[data-theme="light"] textarea { background-color: #F4F4F5 !important; color: #09090B !important; border-color: #E4E4E7 !important; }
+
+/* OTP code display — text-white on transparent card bg is invisible in light mode */
+[data-theme="light"] .tracking-widest.text-white { color: #09090B !important; }
 
 /* ─── Brand gradient utilities ───────────────────────────────────────────── */
 .gradient-brand {
