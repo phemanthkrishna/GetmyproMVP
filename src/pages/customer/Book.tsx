@@ -6,10 +6,11 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
 import { BottomNav } from '../../components/BottomNav'
+import { MapPicker } from '../../components/MapPicker'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { generateOtp, generateOrderId, formatCurrency } from '../../lib/utils'
-import { Home, BookOpen, List } from 'lucide-react'
+import { Home, BookOpen, List, MapPin } from 'lucide-react'
 
 const NAV = [
   { to: '/customer', icon: Home, label: 'Home' },
@@ -26,6 +27,9 @@ export default function Book() {
   const [workersAvailable, setWorkersAvailable] = useState<boolean | null>(null)
   const [checkingAvailability, setCheckingAvailability] = useState(false)
   const [alertSaved, setAlertSaved] = useState(false)
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
+  const [showMapPicker, setShowMapPicker] = useState(false)
   const { session } = useAuth()
   const navigate = useNavigate()
 
@@ -85,6 +89,8 @@ export default function Book() {
         service: selectedService,
         service_emoji: serviceObj?.emoji || '🔧',
         address,
+        customer_lat: lat ?? undefined,
+        customer_lng: lng ?? undefined,
         problem_description: problem || null,
         status: 'booked',
         booking_amt: BOOKING_FEE,
@@ -132,6 +138,15 @@ export default function Book() {
 
   return (
     <div className="page-content px-5 py-6">
+      {showMapPicker && (
+        <MapPicker
+          initialLat={lat ?? undefined}
+          initialLng={lng ?? undefined}
+          onConfirm={(mlat, mlng, addr) => { setLat(mlat); setLng(mlng); setAddress(addr); setShowMapPicker(false) }}
+          onClose={() => setShowMapPicker(false)}
+        />
+      )}
+
       <h1 className="text-2xl font-black font-heading text-slate-50 mb-5">Book a Service</h1>
 
       {/* Service selector */}
@@ -198,12 +213,22 @@ export default function Book() {
           ) : (
             <>
               <div className="flex flex-col gap-4 mb-5">
-                <Input
-                  label="Your Address"
-                  placeholder="House no, street, locality"
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                />
+                <div>
+                  <Input
+                    label="Your Address"
+                    placeholder="House no, street, locality"
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMapPicker(true)}
+                    className="flex items-center gap-1.5 text-orange-400 text-xs font-semibold mt-1.5"
+                  >
+                    <MapPin size={12} />
+                    {lat ? 'Location pinned on map ✓' : 'Pick on map'}
+                  </button>
+                </div>
                 <div>
                   <label className="block text-sm text-slate-400 mb-1 font-medium">
                     Describe the problem (optional)
@@ -235,12 +260,22 @@ export default function Book() {
 
           {/* Form */}
           <div className="flex flex-col gap-4 mb-5">
-            <Input
-              label="Full Address"
-              placeholder="House no, street, locality"
-              value={address}
-              onChange={e => setAddress(e.target.value)}
-            />
+            <div>
+              <Input
+                label="Full Address"
+                placeholder="House no, street, locality"
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowMapPicker(true)}
+                className="flex items-center gap-1.5 text-orange-400 text-xs font-semibold mt-1.5"
+              >
+                <MapPin size={12} />
+                {lat ? 'Location pinned on map ✓' : 'Pick on map'}
+              </button>
+            </div>
             <div>
               <label className="block text-sm text-slate-400 mb-1 font-medium">
                 Describe the problem (optional)

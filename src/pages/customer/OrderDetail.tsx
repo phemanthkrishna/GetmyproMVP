@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useOrder } from '../../hooks/useOrders'
 import { StatusBadge } from '../../components/StatusBadge'
 import { JourneyTracker } from '../../components/JourneyTracker'
+import { LiveTrackingMap } from '../../components/LiveTrackingMap'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { supabase } from '../../lib/supabase'
@@ -122,6 +123,19 @@ export default function CustomerOrderDetail() {
           />
         </div>
       </Card>
+
+      {/* Live tracking map — worker en route */}
+      {order.worker_id && (order.status === 'booked' || order.status === 'worker_visiting') && order.customer_lat && order.customer_lng && (
+        <Card className="mb-4">
+          <p className="font-bold text-slate-50 mb-3">🚗 Live Tracking</p>
+          <LiveTrackingMap
+            workerId={order.worker_id}
+            workerName={order.worker_name || 'Pro'}
+            customerLat={order.customer_lat}
+            customerLng={order.customer_lng}
+          />
+        </Card>
+      )}
 
       {/* Arrival OTP — show when worker assigned but not yet visiting confirmed */}
       {order.worker_id && order.status === 'booked' && (

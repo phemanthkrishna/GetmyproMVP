@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useOrder } from '../../hooks/useOrders'
 import { useAuth } from '../../context/AuthContext'
+import { useWorkerLocation } from '../../hooks/useWorkerLocation'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -32,6 +33,10 @@ export default function JobDetail() {
       .not('status', 'in', '("completed","cancelled")')
       .then(({ data }) => setHasActiveJob((data?.length ?? 0) > 0))
   }, [session?.id])
+
+  // Broadcast live GPS while en route to customer
+  const isEnRoute = order?.worker_id === session?.id && ['booked', 'worker_visiting'].includes(order?.status ?? '')
+  useWorkerLocation(session?.id ?? '', isEnRoute)
 
   // OTP rate-limiting state (5 attempts → 60s lockout per OTP type)
   const [arrivalAttempts, setArrivalAttempts] = useState(0)

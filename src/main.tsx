@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
+import 'leaflet/dist/leaflet.css'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
