@@ -1,19 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
-import L from 'leaflet'
+import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api'
 import { MapPin, Crosshair, X, Check } from 'lucide-react'
 
-const customerIcon = L.divIcon({
-  html: `<div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">
-    <svg viewBox="0 0 24 24" fill="#f97316" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-    </svg>
-  </div>`,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-})
+const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
+
+const darkStyles = [
+  { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212a37' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9ca5b3' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#746855' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.stroke', stylers: [{ color: '#1f2835' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#f3d19c' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#515c6d' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#263c3f' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#6b9a76' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#2b2b2b' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#757575' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#bdbdbd' }] },
+]
 
 interface LatLng { lat: number; lng: number }
 
@@ -45,32 +55,18 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
   }
 }
 
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap()
-  useEffect(() => { map.setView([lat, lng], 17) }, [lat, lng])
-  return null
-}
+const HEADER_H = 56
+const FOOTER_H = 96
 
-function TapHandler({ onTap }: { onTap: (pos: LatLng) => void }) {
-  useMapEvents({ click(e) { onTap({ lat: e.latlng.lat, lng: e.latlng.lng }) } })
-  return null
-}
-
-function InvalidateSize() {
-  const map = useMap()
-  useEffect(() => {
-    // Fire multiple times to handle any layout settling
-    const t1 = setTimeout(() => map.invalidateSize(), 50)
-    const t2 = setTimeout(() => map.invalidateSize(), 300)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [])
-  return null
-}
-
-const HEADER_H = 56  // px
-const FOOTER_H = 96  // px
+const pinIcon = (color: string, size: number) =>
+  `data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="${encodeURIComponent(color)}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
 
 export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props) {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: MAPS_KEY,
+  })
+
   const defaultLat = initialLat ?? 12.9716
   const defaultLng = initialLng ?? 77.5946
 
@@ -78,15 +74,20 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const [address, setAddress] = useState('')
   const [geocoding, setGeocoding] = useState(false)
   const [locating, setLocating] = useState(false)
-  const [center, setCenter] = useState<LatLng>({ lat: defaultLat, lng: defaultLng })
-  const [recenter, setRecenter] = useState(false)
+  const mapRef = useRef<google.maps.Map | null>(null)
 
   useEffect(() => {
     setGeocoding(true)
     reverseGeocode(pin.lat, pin.lng).then(addr => { setAddress(addr); setGeocoding(false) })
   }, [pin.lat, pin.lng])
 
-  function handleTap(pos: LatLng) { setPin(pos) }
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map
+  }, [])
+
+  const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) setPin({ lat: e.latLng.lat(), lng: e.latLng.lng() })
+  }, [])
 
   function handleMyLocation() {
     if (!navigator.geolocation) return
@@ -94,7 +95,10 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
     navigator.geolocation.getCurrentPosition(
       pos => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        setPin(loc); setCenter(loc); setRecenter(r => !r); setLocating(false)
+        setPin(loc)
+        mapRef.current?.panTo(loc)
+        mapRef.current?.setZoom(17)
+        setLocating(false)
       },
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 8000 }
@@ -130,24 +134,31 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
         </button>
       </div>
 
-      {/* Map — explicit pixel height so Leaflet always has a non-zero container */}
-      <div style={{ width: '100%', height: mapH, flexShrink: 0, position: 'relative' }}>
-        <MapContainer
-          key={`${defaultLat}-${defaultLng}`}
-          center={[center.lat, center.lng]}
-          zoom={15}
-          style={{ width: '100%', height: '100%' }}
-          zoomControl={false}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-          />
-          <InvalidateSize />
-          <TapHandler onTap={handleTap} />
-          {recenter !== undefined && <RecenterMap lat={center.lat} lng={center.lng} />}
-          <Marker position={[pin.lat, pin.lng]} icon={customerIcon} />
-        </MapContainer>
+      {/* Map */}
+      <div style={{ width: '100%', height: mapH, flexShrink: 0 }}>
+        {isLoaded ? (
+          <GoogleMap
+            mapContainerStyle={{ width: '100%', height: '100%' }}
+            center={{ lat: defaultLat, lng: defaultLng }}
+            zoom={15}
+            onClick={handleMapClick}
+            onLoad={onMapLoad}
+            options={{ disableDefaultUI: true, zoomControl: true, styles: darkStyles }}
+          >
+            <Marker
+              position={pin}
+              icon={{
+                url: pinIcon('#f97316', 36),
+                scaledSize: new window.google.maps.Size(36, 36),
+                anchor: new window.google.maps.Point(18, 36),
+              }}
+            />
+          </GoogleMap>
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111318', color: '#475569', fontSize: 14 }}>
+            Loading map…
+          </div>
+        )}
       </div>
 
       {/* Footer */}

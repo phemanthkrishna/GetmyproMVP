@@ -98,15 +98,6 @@ h1, h2, h3, h4, h5, h6 {
   background-clip: text;
 }
 
-/* ─── Leaflet map fixes (Tailwind Preflight overrides) ──────────────────── */
-.leaflet-container {
-  z-index: 0;
-}
-.leaflet-container img {
-  max-width: none !important;
-  display: inline !important;
-  box-shadow: none !important;
-}
 
 /* ─── OTP input ──────────────────────────────────────────────────────────── */
 .otp-digit {
