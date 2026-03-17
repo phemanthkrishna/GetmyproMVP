@@ -107,10 +107,13 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─── Light theme — Tailwind slate overrides ────────────────────────────── */
 /* bg.primary / bg.surface layer */
-[data-theme="light"] .bg-slate-950 { background-color: #FAFAFA !important; }
-[data-theme="light"] .bg-slate-900 { background-color: #FFFFFF !important; }
-[data-theme="light"] .bg-slate-800 { background-color: #F4F4F5 !important; }
-[data-theme="light"] .bg-slate-700 { background-color: #E4E4E7 !important; }
+[data-theme="light"] .bg-slate-950         { background-color: #FAFAFA !important; }
+[data-theme="light"] .bg-slate-900         { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-slate-800         { background-color: #F4F4F5 !important; }
+[data-theme="light"] .bg-slate-700         { background-color: #E4E4E7 !important; }
+/* Semi-transparent variants */
+[data-theme="light"] .bg-slate-800\/50     { background-color: rgba(244,244,245,0.8) !important; }
+[data-theme="light"] .bg-slate-700\/50     { background-color: rgba(228,228,231,0.6) !important; }
 
 /* text.primary / text.muted */
 [data-theme="light"] .text-slate-50  { color: #09090B !important; }
