@@ -8,19 +8,17 @@
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg:         #09090B;   /* bg.primary   — deepest background */
-  --surface:    #111318;   /* bg.surface   — card / sheet surface */
-  --border:     #1F2937;   /* border.default */
+  --bg:         #09090B;
+  --surface:    #111318;
+  --border:     #1F2937;
 
   /* Typography */
-  --text:       #F9FAFB;   /* text.primary */
-  --muted:      #9CA3AF;   /* text.muted   */
+  --text:       #F9FAFB;
+  --muted:      #9CA3AF;
 
-  /* Brand — logo colours */
-  --brand:      #1D6FD9;   /* brand.primary  (logo blue)   */
-  --accent:     #E85520;   /* brand.accent   (logo orange) */
-
-  /* Aliases kept for component compatibility */
+  /* Brand */
+  --brand:      #1D6FD9;
+  --accent:     #E85520;
   --primary:    #1D6FD9;
   --card:       #111318;
 
@@ -28,6 +26,53 @@
   --success:    #22C55E;
   --error:      #EF4444;
   --warning:    #F59E0B;
+}
+
+/* ─── Light theme ────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:         #F8FAFC;
+  --surface:    #FFFFFF;
+  --border:     #E2E8F0;
+  --text:       #0F172A;
+  --muted:      #64748B;
+  --card:       #FFFFFF;
+}
+
+[data-theme="light"] body { background-color: var(--bg); color: var(--text); }
+[data-theme="light"] #root { background: var(--bg); }
+
+/* Slate background overrides */
+[data-theme="light"] .bg-slate-950 { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-slate-900 { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-slate-800 { background-color: #F1F5F9 !important; }
+[data-theme="light"] .bg-slate-700 { background-color: #E2E8F0 !important; }
+
+/* Slate text overrides */
+[data-theme="light"] .text-slate-50  { color: #0F172A !important; }
+[data-theme="light"] .text-slate-100 { color: #1E293B !important; }
+[data-theme="light"] .text-slate-200 { color: #1E293B !important; }
+[data-theme="light"] .text-slate-300 { color: #334155 !important; }
+[data-theme="light"] .text-slate-400 { color: #475569 !important; }
+[data-theme="light"] .text-slate-500 { color: #64748B !important; }
+[data-theme="light"] .text-slate-600 { color: #94A3B8 !important; }
+
+/* Slate border overrides */
+[data-theme="light"] .border-slate-800 { border-color: #F1F5F9 !important; }
+[data-theme="light"] .border-slate-700 { border-color: #E2E8F0 !important; }
+[data-theme="light"] .border-slate-600 { border-color: #CBD5E1 !important; }
+
+/* Input placeholders */
+[data-theme="light"] .placeholder-slate-500::placeholder { color: #94A3B8 !important; }
+[data-theme="light"] .placeholder-slate-600::placeholder { color: #94A3B8 !important; }
+
+/* App shell */
+[data-theme="light"] .app-shell { background-color: var(--bg); }
+
+/* OTP digit */
+[data-theme="light"] .otp-digit {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #0F172A;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
@@ -60,7 +105,7 @@ h1, h2, h3, h4, h5, h6 {
 #root {
   display: flex;
   justify-content: center;
-  background: #09090B;
+  background: var(--bg);
 }
 
 .app-shell {

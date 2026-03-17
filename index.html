@@ -12,6 +12,10 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      const t = localStorage.getItem('gmp_theme');
+      document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,11 +2,13 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import App from './App'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
+    <ThemeProvider>
     <AuthProvider>
       <div className="app-shell">
         <App />
@@ -22,5 +24,6 @@ createRoot(document.getElementById('root')!).render(
         }}
       />
     </AuthProvider>
+    </ThemeProvider>
   </BrowserRouter>
 )
