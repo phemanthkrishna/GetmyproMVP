@@ -2,85 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design System Tokens (PDF blueprint) ──────────────────────────────────
-   Semantic tokens derived from the GetMyPro logo palette.
-   Blue  : #1D6FD9  |  Orange: #E85520
+/* ─── Design System Tokens ───────────────────────────────────────────────────
+   Source of truth: GetMyPro logo palette + PDF blueprint
+   Brand Blue : #1D6FD9  |  Brand Orange: #E85520
+   Token naming follows PDF semantic convention: bg / text / border / brand
    ─────────────────────────────────────────────────────────────────────────── */
-:root {
-  /* Backgrounds */
-  --bg:         #09090B;
-  --surface:    #111318;
-  --border:     #1F2937;
 
-  /* Typography */
-  --text:       #F9FAFB;
-  --muted:      #9CA3AF;
-
-  /* Brand */
-  --brand:      #1D6FD9;
-  --accent:     #E85520;
+/* ── Dark theme (default) ── */
+:root,
+[data-theme="dark"] {
+  --bg:         #09090B;   /* bg.primary   */
+  --surface:    #131316;   /* bg.surface   */
+  --border:     #27272A;   /* border.default */
+  --text:       #FAFAFA;   /* text.primary */
+  --muted:      #A1A1AA;   /* text.muted   */
+  --brand:      #1D6FD9;   /* brand.primary (logo blue)   */
+  --accent:     #E85520;   /* brand.accent  (logo orange) */
   --primary:    #1D6FD9;
-  --card:       #111318;
-
-  /* Status */
+  --card:       #131316;
   --success:    #22C55E;
   --error:      #EF4444;
   --warning:    #F59E0B;
 }
 
-/* ─── Light theme ────────────────────────────────────────────────────────── */
+/* ── Light theme ── */
 [data-theme="light"] {
-  --bg:         #F8FAFC;
-  --surface:    #FFFFFF;
-  --border:     #E2E8F0;
-  --text:       #0F172A;
-  --muted:      #64748B;
+  --bg:         #FAFAFA;   /* bg.primary   */
+  --surface:    #FFFFFF;   /* bg.surface   */
+  --border:     #E4E4E7;   /* border.default */
+  --text:       #09090B;   /* text.primary */
+  --muted:      #71717A;   /* text.muted   */
+  --brand:      #1D6FD9;   /* unchanged    */
+  --accent:     #E85520;   /* unchanged    */
+  --primary:    #1D6FD9;
   --card:       #FFFFFF;
 }
 
-[data-theme="light"] body { background-color: var(--bg); color: var(--text); }
-[data-theme="light"] #root { background: var(--bg); }
-
-/* Slate background overrides */
-[data-theme="light"] .bg-slate-950 { background-color: #F8FAFC !important; }
-[data-theme="light"] .bg-slate-900 { background-color: #FFFFFF !important; }
-[data-theme="light"] .bg-slate-800 { background-color: #F1F5F9 !important; }
-[data-theme="light"] .bg-slate-700 { background-color: #E2E8F0 !important; }
-
-/* Slate text overrides */
-[data-theme="light"] .text-slate-50  { color: #0F172A !important; }
-[data-theme="light"] .text-slate-100 { color: #1E293B !important; }
-[data-theme="light"] .text-slate-200 { color: #1E293B !important; }
-[data-theme="light"] .text-slate-300 { color: #334155 !important; }
-[data-theme="light"] .text-slate-400 { color: #475569 !important; }
-[data-theme="light"] .text-slate-500 { color: #64748B !important; }
-[data-theme="light"] .text-slate-600 { color: #94A3B8 !important; }
-
-/* Slate border overrides */
-[data-theme="light"] .border-slate-800 { border-color: #F1F5F9 !important; }
-[data-theme="light"] .border-slate-700 { border-color: #E2E8F0 !important; }
-[data-theme="light"] .border-slate-600 { border-color: #CBD5E1 !important; }
-
-/* Input placeholders */
-[data-theme="light"] .placeholder-slate-500::placeholder { color: #94A3B8 !important; }
-[data-theme="light"] .placeholder-slate-600::placeholder { color: #94A3B8 !important; }
-
-/* App shell */
-[data-theme="light"] .app-shell { background-color: var(--bg); }
-
-/* OTP digit */
-[data-theme="light"] .otp-digit {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
-  color: #0F172A;
-}
-
-/* ─── Reset ─────────────────────────────────────────────────────────────── */
+/* ─── Theme transition — PDF: 200ms small interaction ───────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 200ms ease-out, border-color 200ms ease-out, color 200ms ease-out;
+}
+/* Don't slow down transforms/opacity with the global transition */
+.btn-press, img, svg, [class*="animate-"] {
+  transition: transform 100ms ease-out, opacity 100ms ease-out;
 }
 
+/* ─── Reset ──────────────────────────────────────────────────────────────── */
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -91,17 +60,15 @@ body {
   background-color: var(--bg);
   color: var(--text);
   overflow-x: hidden;
-  /* PDF: Body line-height 1.5–1.7 */
-  line-height: 1.6;
+  line-height: 1.6;          /* PDF: Body 1.5–1.7 */
 }
 
-/* PDF: Headings — tighter line-height 1.1–1.3 */
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Nunito', sans-serif;
-  line-height: 1.2;
+  line-height: 1.2;          /* PDF: Headings 1.1–1.3 */
 }
 
-/* ─── App shell — mobile centred ────────────────────────────────────────── */
+/* ─── App shell ──────────────────────────────────────────────────────────── */
 #root {
   display: flex;
   justify-content: center;
@@ -117,19 +84,35 @@ h1, h2, h3, h4, h5, h6 {
   overflow-x: hidden;
 }
 
-/* Scrollable page content with bottom nav clearance */
 .page-content {
   padding-bottom: 80px;
   min-height: 100dvh;
 }
 
-/* ─── Motion (PDF: 100ms micro, ease-out for enters) ────────────────────── */
-.btn-press {
-  transition: transform 100ms ease-out, opacity 100ms ease-out;
-}
-.btn-press:active {
-  transform: scale(0.96);
-}
+/* ─── Light theme — Tailwind slate overrides ────────────────────────────── */
+/* bg.primary / bg.surface layer */
+[data-theme="light"] .bg-slate-950 { background-color: #FAFAFA !important; }
+[data-theme="light"] .bg-slate-900 { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-slate-800 { background-color: #F4F4F5 !important; }
+[data-theme="light"] .bg-slate-700 { background-color: #E4E4E7 !important; }
+
+/* text.primary / text.muted */
+[data-theme="light"] .text-slate-50  { color: #09090B !important; }
+[data-theme="light"] .text-slate-100 { color: #18181B !important; }
+[data-theme="light"] .text-slate-200 { color: #27272A !important; }
+[data-theme="light"] .text-slate-300 { color: #3F3F46 !important; }
+[data-theme="light"] .text-slate-400 { color: #52525B !important; }
+[data-theme="light"] .text-slate-500 { color: #71717A !important; }
+[data-theme="light"] .text-slate-600 { color: #A1A1AA !important; }
+
+/* border.default */
+[data-theme="light"] .border-slate-800 { border-color: #F4F4F5 !important; }
+[data-theme="light"] .border-slate-700 { border-color: #E4E4E7 !important; }
+[data-theme="light"] .border-slate-600 { border-color: #D4D4D8 !important; }
+
+/* Placeholders */
+[data-theme="light"] .placeholder-slate-500::placeholder { color: #A1A1AA !important; }
+[data-theme="light"] .placeholder-slate-600::placeholder { color: #A1A1AA !important; }
 
 /* ─── Brand gradient utilities ───────────────────────────────────────────── */
 .gradient-brand {
@@ -143,6 +126,10 @@ h1, h2, h3, h4, h5, h6 {
   background-clip: text;
 }
 
+/* ─── Motion — PDF: 100ms micro, ease-out for enters ────────────────────── */
+.btn-press:active {
+  transform: scale(0.96);
+}
 
 /* ─── OTP input ──────────────────────────────────────────────────────────── */
 .otp-digit {
@@ -156,8 +143,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 12px;
   color: var(--text);
   outline: none;
-  /* PDF: 200ms small interaction */
-  transition: border-color 200ms ease-out;
+  transition: border-color 200ms ease-out;  /* PDF: 200ms small */
 }
 .otp-digit:focus {
   border-color: var(--brand);
