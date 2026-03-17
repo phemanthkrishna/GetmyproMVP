@@ -7,8 +7,8 @@ import { database } from '../lib/firebase'
 interface Props {
   workerId: string
   workerName: string
-  customerLat: number
-  customerLng: number
+  customerLat?: number | null
+  customerLng?: number | null
 }
 
 interface WorkerPos { lat: number; lng: number }
@@ -35,16 +35,18 @@ const workerIcon = L.divIcon({
   iconAnchor: [20, 40],
 })
 
-function FitBounds({ workerPos, customerLat, customerLng }: { workerPos: WorkerPos | null; customerLat: number; customerLng: number }) {
+function FitBounds({ workerPos, customerLat, customerLng }: { workerPos: WorkerPos | null; customerLat?: number | null; customerLng?: number | null }) {
   const map = useMap()
   useEffect(() => {
-    if (workerPos) {
+    if (workerPos && customerLat && customerLng) {
       const bounds = L.latLngBounds(
         [workerPos.lat, workerPos.lng],
         [customerLat, customerLng]
       )
       map.fitBounds(bounds, { padding: [50, 50] })
-    } else {
+    } else if (workerPos) {
+      map.setView([workerPos.lat, workerPos.lng], 15)
+    } else if (customerLat && customerLng) {
       map.setView([customerLat, customerLng], 15)
     }
   }, [workerPos?.lat, workerPos?.lng, customerLat, customerLng])
@@ -67,11 +69,17 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
     return () => unsub()
   }, [workerId])
 
+  const defaultCenter: [number, number] = workerPos
+    ? [workerPos.lat, workerPos.lng]
+    : customerLat && customerLng
+      ? [customerLat, customerLng]
+      : [12.9716, 77.5946]
+
   return (
     <div>
       <div className="rounded-2xl overflow-hidden border border-slate-700" style={{ height: 220 }}>
         <MapContainer
-          center={[customerLat, customerLng]}
+          center={defaultCenter}
           zoom={15}
           style={{ width: '100%', height: '100%' }}
           zoomControl={false}
@@ -83,7 +91,7 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
             attribution='© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           />
           <FitBounds workerPos={workerPos} customerLat={customerLat} customerLng={customerLng} />
-          <Marker position={[customerLat, customerLng]} icon={customerIcon} />
+          {customerLat && customerLng && <Marker position={[customerLat, customerLng]} icon={customerIcon} />}
           {workerPos && <Marker position={[workerPos.lat, workerPos.lng]} icon={workerIcon} />}
         </MapContainer>
       </div>

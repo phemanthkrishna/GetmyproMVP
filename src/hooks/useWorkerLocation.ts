@@ -18,7 +18,7 @@ export function useWorkerLocation(workerId: string, isActive: boolean) {
           ts: Date.now(),
         })
       },
-      null,
+      err => { console.error('Worker GPS error:', err.code, err.message) },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     )
 

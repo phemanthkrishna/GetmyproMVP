@@ -125,7 +125,7 @@ export default function CustomerOrderDetail() {
       </Card>
 
       {/* Live tracking map — worker en route */}
-      {order.worker_id && (order.status === 'booked' || order.status === 'worker_visiting') && order.customer_lat && order.customer_lng && (
+      {order.worker_id && (order.status === 'booked' || order.status === 'worker_visiting') && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">🚗 Live Tracking</p>
           <LiveTrackingMap
