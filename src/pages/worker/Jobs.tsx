@@ -9,7 +9,7 @@ import { BottomNav } from '../../components/BottomNav'
 import { formatDate } from '../../lib/utils'
 import { Briefcase, DollarSign, User, History } from 'lucide-react'
 import { formatCurrency } from '../../lib/utils'
-import type { Worker } from '../../types'
+import type { Worker, Order } from '../../types'
 
 const NAV = [
   { to: '/worker', icon: Briefcase, label: 'Jobs' },
@@ -59,7 +59,7 @@ export default function WorkerJobs() {
       .eq('status', 'booked')
       .is('worker_id', null)
       .order('created_at', { ascending: false })
-    setAvailable((data as any) || [])
+    setAvailable((data as Order[]) || [])
   }
 
   async function toggleOnline() {
@@ -167,7 +167,7 @@ export default function WorkerJobs() {
   )
 }
 
-function JobCard({ order, onClick }: { order: any; onClick: () => void }) {
+function JobCard({ order, onClick }: { order: Order; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

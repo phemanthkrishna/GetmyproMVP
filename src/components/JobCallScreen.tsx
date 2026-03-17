@@ -56,7 +56,7 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
       .select('service_categories, is_online, verified, is_active')
       .eq('id', workerId)
       .single()
-      .then(({ data }) => setWorkerMeta(data as WorkerMeta))
+      .then(({ data, error }) => { if (!error && data) setWorkerMeta(data as WorkerMeta) })
 
     const ch = supabase.channel(`worker-meta-${workerId}`)
       .on('postgres_changes', {
@@ -95,7 +95,7 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
       .not('declined_worker_ids', 'cs', `{${workerId}}`)
       .order('created_at', { ascending: true })
     const cats = meta.service_categories || []
-    const relevant = (data as Order[] || []).filter(o =>
+    const relevant = ((data || []) as Order[]).filter(o =>
       cats.length === 0 || cats.includes(o.service)
     )
     setQueue(relevant)
@@ -153,7 +153,8 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
 
   // ── Actions ─────────────────────────────────────────────────────────
   async function doDecline(order: Order) {
-    await supabase.rpc('decline_job', { p_order_id: order.id, p_worker_id: workerId })
+    const { error } = await supabase.rpc('decline_job', { p_order_id: order.id, p_worker_id: workerId })
+    if (error) console.error('decline_job failed:', error.message)
     setQueue(prev => prev.filter(o => o.id !== order.id))
   }
 

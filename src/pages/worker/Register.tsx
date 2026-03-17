@@ -29,12 +29,22 @@ export default function WorkerRegister() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
+  const photoUrlRef = useRef('')
+
   useEffect(() => {
-    verifierRef.current = createRecaptchaVerifier('recaptcha-container')
+    try {
+      verifierRef.current = createRecaptchaVerifier('recaptcha-container')
+    } catch {
+      console.error('reCAPTCHA failed to initialize')
+    }
     return () => {
       verifierRef.current?.clear()
       verifierRef.current = null
     }
+  }, [])
+
+  useEffect(() => {
+    return () => { if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current) }
   }, [])
 
   async function handleSendOtp() {
@@ -58,13 +68,13 @@ export default function WorkerRegister() {
     if (otp.length < 6) return toast.error('Enter 6-digit OTP')
     if (!confirmationResult) return toast.error('Please request OTP first')
     setLoading(true)
-    const ok = await verifyOtp(confirmationResult, otp)
-    if (!ok) {
-      toast.error('Wrong OTP')
-      setLoading(false)
-      return
+    try {
+      const ok = await verifyOtp(confirmationResult, otp)
+      if (!ok) { toast.error('Wrong OTP'); setLoading(false); return }
+      setStep('aadhaar')
+    } catch (e: any) {
+      toast.error(e.message || 'Verification failed')
     }
-    setStep('aadhaar')
     setLoading(false)
   }
 
@@ -80,9 +90,11 @@ export default function WorkerRegister() {
       toast.error('Photo must be under 5 MB')
       return
     }
-    setPhotoPreview(prev => { if (prev) URL.revokeObjectURL(prev); return '' })
+    if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current)
+    const url = URL.createObjectURL(file)
+    photoUrlRef.current = url
     setPhotoFile(file)
-    setPhotoPreview(URL.createObjectURL(file))
+    setPhotoPreview(url)
   }
 
   async function handleComplete() {
@@ -286,7 +298,7 @@ export default function WorkerRegister() {
 
           {photoPreview && (
             <button
-              onClick={() => { if (photoPreview) URL.revokeObjectURL(photoPreview); setPhotoFile(null); setPhotoPreview('') }}
+              onClick={() => { if (photoUrlRef.current) { URL.revokeObjectURL(photoUrlRef.current); photoUrlRef.current = '' } setPhotoFile(null); setPhotoPreview('') }}
               className="text-slate-500 text-xs text-center w-full mb-4"
             >
               Retake photo

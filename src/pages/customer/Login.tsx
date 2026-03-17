@@ -26,7 +26,11 @@ export default function CustomerLogin() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    verifierRef.current = createRecaptchaVerifier('recaptcha-container')
+    try {
+      verifierRef.current = createRecaptchaVerifier('recaptcha-container')
+    } catch {
+      console.error('reCAPTCHA failed to initialize')
+    }
     return () => {
       verifierRef.current?.clear()
       verifierRef.current = null

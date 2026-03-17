@@ -43,7 +43,8 @@ export default function WorkerProfile() {
   }
 
   async function saveUpi() {
-    const { error } = await supabase.from('workers').update({ upi_id: draftUpi.trim() || null }).eq('id', session!.id)
+    if (!session) return
+    const { error } = await supabase.from('workers').update({ upi_id: draftUpi.trim() || null }).eq('id', session.id)
     if (error) { toast.error(error.message); return }
     setWorker(w => w ? { ...w, upi_id: draftUpi.trim() || undefined } : w)
     toast.success('UPI ID updated ✓')
@@ -52,11 +53,12 @@ export default function WorkerProfile() {
 
   async function saveServices() {
     if (draftCategories.length === 0) { toast.error('Select at least one service'); return }
+    if (!session) return
     setSavingServices(true)
     const { error } = await supabase.from('workers').update({
       service_categories: draftCategories,
       service: draftCategories[0],
-    }).eq('id', session!.id)
+    }).eq('id', session.id)
     if (error) { toast.error(error.message); setSavingServices(false); return }
     setWorker(w => w ? { ...w, service_categories: draftCategories, service: draftCategories[0] } : w)
     toast.success('Services updated ✓')

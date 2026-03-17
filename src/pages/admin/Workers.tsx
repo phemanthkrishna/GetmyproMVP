@@ -39,7 +39,8 @@ export default function AdminWorkers() {
 
   async function verify(w: Worker) {
     setSaving(w.id)
-    await supabase.from('workers').update({ verified: true, is_active: true }).eq('id', w.id)
+    const { error } = await supabase.from('workers').update({ verified: true, is_active: true }).eq('id', w.id)
+    if (error) { toast.error('Failed to verify worker, please try again'); setSaving(null); return }
     toast.success(`${w.name} verified ✓`)
     fetchWorkers()
     setSaving(null)

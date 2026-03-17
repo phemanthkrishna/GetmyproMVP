@@ -39,7 +39,7 @@ export function CustomerAlertNotifier({ customerId }: Props) {
       .eq('is_online', true)
 
     const readyServices = alerts
-      .filter(a => (onlineWorkers || []).some(w =>
+      .filter(a => a.service && (onlineWorkers || []).some(w =>
         w.service === a.service ||
         (Array.isArray(w.service_categories) && w.service_categories.includes(a.service))
       ))

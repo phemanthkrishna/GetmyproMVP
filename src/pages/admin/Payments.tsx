@@ -31,12 +31,14 @@ export default function AdminPayments() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
+  interface WorkerUpi { id: string; upi_id: string | null }
+
   async function fetchWorkerUpis(rows: Order[]) {
     const ids = [...new Set(rows.map(o => o.worker_id).filter(Boolean))] as string[]
     if (!ids.length) return
     const { data } = await supabase.from('workers').select('id,upi_id').in('id', ids)
     const map: Record<string, string> = {}
-    ;(data || []).forEach((w: any) => { if (w.upi_id) map[w.id] = w.upi_id })
+    ;(data as WorkerUpi[] || []).forEach(w => { if (w.upi_id) map[w.id] = w.upi_id })
     setWorkerUpi(map)
   }
 

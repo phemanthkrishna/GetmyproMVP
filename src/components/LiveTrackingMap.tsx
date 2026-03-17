@@ -47,7 +47,7 @@ function FitBounds({ workerPos, customerLat, customerLng }: { workerPos: WorkerP
     } else {
       map.setView([customerLat, customerLng], 15)
     }
-  }, [workerPos?.lat, workerPos?.lng])
+  }, [workerPos?.lat, workerPos?.lng, customerLat, customerLng])
   return null
 }
 
@@ -61,6 +61,8 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
       if (data?.lat && data?.lng) {
         setWorkerPos({ lat: data.lat, lng: data.lng })
       }
+    }, error => {
+      console.error('Firebase location read failed:', error.message)
     })
     return () => unsub()
   }, [workerId])

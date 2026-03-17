@@ -26,9 +26,9 @@ export default function AdminOrderDetail() {
 
   useEffect(() => {
     supabase.from('workers').select('*').eq('verified', true).eq('is_active', true).eq('is_online', true)
-      .then(({ data }) => setWorkers((data as Worker[]) || []))
+      .then(({ data, error }) => { if (!error) setWorkers((data as Worker[]) || []) })
     supabase.from('stores').select('id,name,store_type,contact').order('name')
-      .then(({ data }) => setStores((data as StoreRow[]) || []))
+      .then(({ data, error }) => { if (!error) setStores((data as StoreRow[]) || []) })
   }, [])
 
   if (loading) return <div className="p-6 text-slate-400">Loading...</div>

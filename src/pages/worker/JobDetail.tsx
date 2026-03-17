@@ -64,15 +64,16 @@ export default function JobDetail() {
 
   // Step 1: Accept job
   async function acceptJob() {
+    if (!session) return
     if (hasActiveJob) {
       toast.error('Complete your current job before accepting a new one')
       return
     }
     setSaving(true)
     const { error } = await supabase.from('orders').update({
-      worker_id: session!.id,
-      worker_name: session!.name,
-      worker_phone: session!.phone,
+      worker_id: session.id,
+      worker_name: session.name,
+      worker_phone: session.phone,
       status: 'booked', // stays booked until arrival OTP entered
     }).eq('id', order!.id)
     if (error) toast.error(error.message)
@@ -438,9 +439,9 @@ export default function JobDetail() {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={async e => {
+              onChange={e => {
                 const f = e.target.files?.[0]
-                if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); await uploadPhoto(f) }
+                if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); uploadPhoto(f) }
               }}
             />
           </label>
