@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { SERVICES } from '../../constants'
 import { BottomNav } from '../../components/BottomNav'
 import { StatusBadge } from '../../components/StatusBadge'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../hooks/useOrders'
 import { supabase } from '../../lib/supabase'
@@ -81,9 +82,12 @@ export default function CustomerHome() {
           <p className="text-slate-500 text-sm">Hello, {session?.name?.split(' ')[0]}</p>
           <h1 className="text-2xl font-black font-heading text-slate-50 mt-0.5">What do you need?</h1>
         </div>
-        <button onClick={signOut} className="flex items-center gap-1.5 text-red-400 text-xs font-semibold mt-1">
-          <LogOut size={14} /> Sign Out
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button onClick={signOut} className="flex items-center gap-1.5 text-red-400 text-xs font-semibold">
+            <LogOut size={14} /> Sign Out
+          </button>
+        </div>
       </div>
 
       {/* Partner availability notifications */}

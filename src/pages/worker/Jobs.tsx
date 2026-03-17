@@ -6,6 +6,7 @@ import { useOrders } from '../../hooks/useOrders'
 import { supabase } from '../../lib/supabase'
 import { StatusBadge } from '../../components/StatusBadge'
 import { BottomNav } from '../../components/BottomNav'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import { formatDate } from '../../lib/utils'
 import { Briefcase, DollarSign, User, History } from 'lucide-react'
 import { formatCurrency } from '../../lib/utils'
@@ -103,6 +104,7 @@ export default function WorkerJobs() {
           <h1 className="text-2xl font-black font-heading text-slate-50">{session?.name?.split(' ')[0]}</h1>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {/* Online/Offline toggle */}
           {workerInfo && (
             <button

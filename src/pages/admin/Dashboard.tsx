@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { StatusBadge } from '../../components/StatusBadge'
 import { BottomNav } from '../../components/BottomNav'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import { formatDate } from '../../lib/utils'
 import { ClipboardList, Users, DollarSign, Package, Store } from 'lucide-react'
 import type { Order, Worker } from '../../types'
@@ -63,9 +64,12 @@ export default function AdminDashboard() {
     <div className="page-content px-5 py-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-black font-heading text-slate-50">Admin Dashboard</h1>
-        <button onClick={signOut} className="text-xs text-slate-500 border border-slate-700 rounded-lg px-3 py-1.5">
-          Sign Out
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button onClick={signOut} className="text-xs text-slate-500 border border-slate-700 rounded-lg px-3 py-1.5">
+            Sign Out
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
