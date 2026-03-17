@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api'
-import { MapPin, Crosshair, X, Check } from 'lucide-react'
+import { useJsApiLoader, GoogleMap, Marker, Autocomplete } from '@react-google-maps/api'
+import { MapPin, Crosshair, X, Check, Search } from 'lucide-react'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
+const LIBRARIES: ('places')[] = ['places']
 
 const darkStyles = [
   { elementType: 'geometry', stylers: [{ color: '#212121' }] },
@@ -56,6 +57,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 }
 
 const HEADER_H = 56
+const SEARCH_H = 56
 const FOOTER_H = 96
 
 const pinIcon = (color: string, size: number) =>
@@ -65,6 +67,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: MAPS_KEY,
+    libraries: LIBRARIES,
   })
 
   const defaultLat = initialLat ?? 12.9716
@@ -75,6 +78,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const [geocoding, setGeocoding] = useState(false)
   const [locating, setLocating] = useState(false)
   const mapRef = useRef<google.maps.Map | null>(null)
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
 
   useEffect(() => {
     setGeocoding(true)
@@ -87,6 +91,22 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
 
   const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
     if (e.latLng) setPin({ lat: e.latLng.lat(), lng: e.latLng.lng() })
+  }, [])
+
+  const onAutocompleteLoad = useCallback((ac: google.maps.places.Autocomplete) => {
+    autocompleteRef.current = ac
+  }, [])
+
+  const onPlaceChanged = useCallback(() => {
+    const place = autocompleteRef.current?.getPlace()
+    if (!place?.geometry?.location) return
+    const lat = place.geometry.location.lat()
+    const lng = place.geometry.location.lng()
+    setPin({ lat, lng })
+    mapRef.current?.panTo({ lat, lng })
+    mapRef.current?.setZoom(17)
+    if (place.formatted_address) setAddress(place.formatted_address)
+    if (place.geometry?.viewport) mapRef.current?.fitBounds(place.geometry.viewport)
   }, [])
 
   function handleMyLocation() {
@@ -110,7 +130,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
     onConfirm(pin.lat, pin.lng, address)
   }
 
-  const mapH = `calc(100dvh - ${HEADER_H}px - ${FOOTER_H}px)`
+  const mapH = `calc(100dvh - ${HEADER_H}px - ${SEARCH_H}px - ${FOOTER_H}px)`
 
   return createPortal(
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998, display: 'flex', flexDirection: 'column', background: '#09090b' }}>
@@ -122,7 +142,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
         </button>
         <div style={{ flex: 1 }}>
           <p style={{ color: '#f8fafc', fontWeight: 700, fontSize: 14, margin: 0 }}>Pick your location</p>
-          <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>Tap on the map to set your address</p>
+          <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>Search or tap the map</p>
         </div>
         <button
           onClick={handleMyLocation}
@@ -132,6 +152,39 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
           <Crosshair size={13} />
           {locating ? 'Locating…' : 'My Location'}
         </button>
+      </div>
+
+      {/* Search bar */}
+      <div style={{ height: SEARCH_H, flexShrink: 0, padding: '8px 16px', background: '#0f172a', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Search size={16} color="#475569" style={{ flexShrink: 0 }} />
+        {isLoaded ? (
+          <Autocomplete
+            onLoad={onAutocompleteLoad}
+            onPlaceChanged={onPlaceChanged}
+            options={{ componentRestrictions: { country: 'in' } }}
+          >
+            <input
+              type="text"
+              placeholder="Search for a place or area…"
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: '#f8fafc',
+                fontSize: 14,
+                fontFamily: 'inherit',
+              }}
+            />
+          </Autocomplete>
+        ) : (
+          <input
+            type="text"
+            placeholder="Loading search…"
+            disabled
+            style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#475569', fontSize: 14, fontFamily: 'inherit' }}
+          />
+        )}
       </div>
 
       {/* Map */}
