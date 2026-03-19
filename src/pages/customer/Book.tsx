@@ -18,6 +18,8 @@ const NAV = [
   { to: '/customer/profile', icon: User, label: 'Profile' },
 ]
 
+interface SavedAddress { label: string; address: string }
+
 export default function Book() {
   const [params] = useSearchParams()
   const [selectedService, setSelectedService] = useState('')
@@ -30,8 +32,15 @@ export default function Book() {
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [showMapPicker, setShowMapPicker] = useState(false)
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const { session } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!session?.id) return
+    supabase.from('profiles').select('saved_addresses').eq('id', session.id).single()
+      .then(({ data }) => setSavedAddresses(data?.saved_addresses || []))
+  }, [session?.id])
 
   useEffect(() => {
     const svc = params.get('service')
@@ -220,6 +229,28 @@ export default function Book() {
             <>
               <div className="flex flex-col gap-4 mb-5">
                 <div>
+                  {savedAddresses.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-slate-400 text-xs font-medium mb-1.5">Saved addresses</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        {savedAddresses.map((a, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setAddress(a.address); setLat(null); setLng(null) }}
+                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                              address === a.address
+                                ? 'border-orange-500 bg-orange-500/20 text-orange-300'
+                                : 'border-slate-600 bg-slate-800 text-slate-300'
+                            }`}
+                          >
+                            <MapPin size={10} />
+                            {a.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <Input
                     label="Your Address"
                     placeholder="House no, street, locality"
@@ -267,6 +298,28 @@ export default function Book() {
           {/* Form */}
           <div className="flex flex-col gap-4 mb-5">
             <div>
+              {savedAddresses.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-slate-400 text-xs font-medium mb-1.5">Saved addresses</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {savedAddresses.map((a, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => { setAddress(a.address); setLat(null); setLng(null) }}
+                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                          address === a.address
+                            ? 'border-orange-500 bg-orange-500/20 text-orange-300'
+                            : 'border-slate-600 bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        <MapPin size={10} />
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Input
                 label="Full Address"
                 placeholder="House no, street, locality"
