@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { SERVICES, BOOKING_FEE } from '../../constants'
+import { SERVICES, BOOKING_FEE, VISITING_CHARGE, PLATFORM_FEE, TRANSACTION_FEE_RATE } from '../../constants'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
@@ -295,14 +295,22 @@ export default function Book() {
             <p className="font-bold text-slate-50 mb-3">Payment Breakdown</p>
             <div className="flex flex-col gap-2 text-sm">
               <div className="flex justify-between text-slate-400">
-                <span>Booking fee</span>
-                <span>{formatCurrency(BOOKING_FEE)}</span>
+                <span>Visiting charge</span>
+                <span>{formatCurrency(VISITING_CHARGE)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Platform fee</span>
+                <span>{formatCurrency(PLATFORM_FEE)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Transaction fee (2.5%)</span>
+                <span>{formatCurrency(Math.round(BOOKING_FEE * TRANSACTION_FEE_RATE * 100) / 100)}</span>
               </div>
             </div>
             <div className="border-t border-slate-700 mt-3 pt-3 flex justify-between items-center">
-              <span className="font-bold text-slate-50">Booking fee</span>
+              <span className="font-bold text-slate-50">Total to pay</span>
               <span className="bg-orange-500 text-white font-black px-3 py-1 rounded-full text-lg">
-                {formatCurrency(BOOKING_FEE)}
+                {formatCurrency(Math.round(BOOKING_FEE * (1 + TRANSACTION_FEE_RATE) * 100) / 100)}
               </span>
             </div>
             <p className="text-slate-500 text-xs mt-3">

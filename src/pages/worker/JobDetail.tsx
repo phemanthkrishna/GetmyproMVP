@@ -117,9 +117,22 @@ export default function JobDetail() {
     if (!labour || isNaN(Number(labour))) return toast.error('Enter labour charges')
     const labourAmt = Number(labour)
     if (labourAmt < 50) return toast.error('Labour charge must be at least ₹50')
-    if (labourAmt > 100_000) return toast.error('Labour charge cannot exceed ₹1,00,000')
     setSaving(true)
     const validMats = needsMaterials ? materials.filter(m => m.name.trim()) : []
+
+    // > ₹1,000 requires admin approval before quote is sent
+    if (labourAmt > 1_000) {
+      const { error } = await supabase.from('orders').update({
+        labour_approval_pending: true,
+        labour_pending_amount: labourAmt,
+        quote_materials: validMats,
+      }).eq('id', order!.id)
+      if (error) toast.error(error.message)
+      else { toast.success('Amount sent for admin approval ⏳'); refetch() }
+      setSaving(false)
+      return
+    }
+
     const update: Record<string, any> = {
       quote_labour: labourAmt,
       quote_materials: validMats,
@@ -285,8 +298,16 @@ export default function JobDetail() {
         </Card>
       )}
 
+      {/* inspecting: awaiting admin approval for high labour amount */}
+      {isMyJob && order.status === 'inspecting' && order.labour_approval_pending && (
+        <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
+          <p className="text-amber-400 font-bold mb-1">⏳ Awaiting Admin Approval</p>
+          <p className="text-slate-400 text-sm">Your labour charge of {formatCurrency(order.labour_pending_amount || 0)} exceeds ₹1,000 and requires admin approval. You'll be notified once approved.</p>
+        </Card>
+      )}
+
       {/* inspecting: show quote form */}
-      {isMyJob && order.status === 'inspecting' && (
+      {isMyJob && order.status === 'inspecting' && !order.labour_approval_pending && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-1">Send Quote to Admin</p>
           <div className="flex flex-col gap-4">

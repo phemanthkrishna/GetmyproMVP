@@ -79,6 +79,8 @@ export interface Order {
   mat_store_contact?: string
   mat_collection_otp?: string
   mat_collected?: boolean
+  labour_approval_pending?: boolean
+  labour_pending_amount?: number
   declined_worker_ids?: string[]
   created_at: string
   updated_at: string

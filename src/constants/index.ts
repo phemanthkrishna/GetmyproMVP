@@ -9,7 +9,10 @@ export const SERVICES = [
   { id: 8, emoji: '🔐', name: 'Locksmith', desc: 'Locks & keys' },
 ]
 
-export const BOOKING_FEE = 125
+export const VISITING_CHARGE = 100
+export const PLATFORM_FEE = 25
+export const BOOKING_FEE = VISITING_CHARGE + PLATFORM_FEE  // ₹125
+export const TRANSACTION_FEE_RATE = 0.025
 
 export const STATUS_CONFIG: Record<
   string,

@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { supabase } from '../../lib/supabase'
 import { formatDate, formatCurrency } from '../../lib/utils'
+import { TRANSACTION_FEE_RATE } from '../../constants'
 import { ArrowLeft, Star } from 'lucide-react'
 
 export default function CustomerOrderDetail() {
@@ -167,10 +168,16 @@ export default function CustomerOrderDetail() {
           <div className="flex flex-col gap-2 text-sm">
             <Row label="Labour charges" value={formatCurrency(order.quote_labour || 0)} />
             <Row label="Material cost" value={formatCurrency(order.mat_cost_admin || 0)} />
+            <Row
+              label="Transaction fee (2.5%)"
+              value={formatCurrency(Math.round((order.total_quote || 0) * TRANSACTION_FEE_RATE * 100) / 100)}
+            />
           </div>
           <div className="border-t border-slate-700 mt-3 pt-3 flex justify-between items-center">
-            <span className="font-bold text-slate-50">Total</span>
-            <span className="font-black text-orange-400 text-xl">{formatCurrency(order.total_quote || 0)}</span>
+            <span className="font-bold text-slate-50">Total to pay</span>
+            <span className="font-black text-orange-400 text-xl">
+              {formatCurrency(Math.round((order.total_quote || 0) * (1 + TRANSACTION_FEE_RATE) * 100) / 100)}
+            </span>
           </div>
           <div className="mt-3">
             {!paymentSubmitted ? (

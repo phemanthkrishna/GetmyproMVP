@@ -59,7 +59,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
 const HEADER_H = 56
 const SEARCH_H = 56
-const FOOTER_H = 96
+const FOOTER_H = 252
 
 const pinIcon = (color: string, size: number) =>
   `data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="${encodeURIComponent(color)}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
@@ -101,6 +101,9 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const [address, setAddress] = useState('')
   const [geocoding, setGeocoding] = useState(false)
   const [locating, setLocating] = useState(false)
+  const [apartmentName, setApartmentName] = useState('')
+  const [flatNo, setFlatNo] = useState('')
+  const [floorNo, setFloorNo] = useState('')
   const mapRef = useRef<google.maps.Map | null>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
 
@@ -151,7 +154,13 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
 
   function handleConfirm() {
     if (!address) return
-    onConfirm(pin.lat, pin.lng, address)
+    const details = [
+      apartmentName,
+      flatNo && `Flat ${flatNo}`,
+      floorNo && `Floor ${floorNo}`,
+    ].filter(Boolean).join(', ')
+    const fullAddress = details ? `${details}, ${address}` : address
+    onConfirm(pin.lat, pin.lng, fullAddress)
   }
 
   const mapH = `calc(100dvh - ${HEADER_H}px - ${SEARCH_H}px - ${FOOTER_H}px)`
@@ -239,19 +248,41 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
       </div>
 
       {/* Footer */}
-      <div style={{ height: FOOTER_H, flexShrink: 0, padding: '12px 16px', background: C.surface, borderTop: `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
-          <MapPin size={18} color="#f97316" style={{ marginTop: 2, flexShrink: 0 }} />
-          <p style={{ color: C.addrText, fontSize: 13, lineHeight: 1.4, margin: 0, flex: 1 }}>
+      <div style={{ height: FOOTER_H, flexShrink: 0, padding: '12px 16px', background: C.surface, borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Reverse-geocoded street address */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <MapPin size={16} color="#f97316" style={{ marginTop: 2, flexShrink: 0 }} />
+          <p style={{ color: C.addrText, fontSize: 12, lineHeight: 1.4, margin: 0, flex: 1 }}>
             {geocoding
               ? <span style={{ color: C.muted }}>Getting address…</span>
               : (address || 'Tap the map to select a location')}
           </p>
         </div>
+        {/* Address detail inputs */}
+        <input
+          placeholder="Apartment / Building name (e.g. Sunrise Towers)"
+          value={apartmentName}
+          onChange={e => setApartmentName(e.target.value)}
+          style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 10px', color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+        />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            placeholder="Flat / Unit no."
+            value={flatNo}
+            onChange={e => setFlatNo(e.target.value)}
+            style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 10px', color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+          />
+          <input
+            placeholder="Floor no."
+            value={floorNo}
+            onChange={e => setFloorNo(e.target.value)}
+            style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 10px', color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+          />
+        </div>
         <button
           onClick={handleConfirm}
           disabled={!address || geocoding}
-          style={{ width: '100%', background: '#f97316', opacity: !address || geocoding ? 0.4 : 1, color: '#fff', fontWeight: 700, borderRadius: 16, padding: '12px 0', border: 'none', cursor: !address || geocoding ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}
+          style={{ width: '100%', background: '#f97316', opacity: !address || geocoding ? 0.4 : 1, color: '#fff', fontWeight: 700, borderRadius: 16, padding: '11px 0', border: 'none', cursor: !address || geocoding ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}
         >
           <Check size={16} />
           Confirm Location

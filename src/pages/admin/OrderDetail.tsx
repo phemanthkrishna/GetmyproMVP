@@ -54,6 +54,37 @@ export default function AdminOrderDetail() {
     setSaving(false)
   }
 
+  async function approveLabour() {
+    setSaving(true)
+    const labourAmt = order!.labour_pending_amount || 0
+    const validMats = Array.isArray(order!.quote_materials) && order!.quote_materials.length > 0
+    const update: Record<string, any> = {
+      quote_labour: labourAmt,
+      labour_approval_pending: false,
+      labour_pending_amount: null,
+      status: 'quote_sent',
+    }
+    if (!validMats) {
+      update.mat_cost_admin = 0
+      update.total_quote = labourAmt
+    }
+    const { error } = await supabase.from('orders').update(update).eq('id', order!.id)
+    if (error) toast.error('Failed to approve, please try again')
+    else { toast.success('Labour approved — quote sent ✓'); refetch() }
+    setSaving(false)
+  }
+
+  async function rejectLabour() {
+    setSaving(true)
+    const { error } = await supabase.from('orders').update({
+      labour_approval_pending: false,
+      labour_pending_amount: null,
+    }).eq('id', order!.id)
+    if (error) toast.error('Failed to reject, please try again')
+    else { toast.success('Labour charge rejected — worker will re-enter'); refetch() }
+    setSaving(false)
+  }
+
   async function confirmMatCost() {
     if (!matCost || isNaN(Number(matCost))) return toast.error('Enter valid material cost')
     const mat = Number(matCost)
@@ -210,6 +241,26 @@ export default function AdminOrderDetail() {
             <a href={`tel:${order.worker_phone}`} className="text-blue-400 flex items-center gap-1">
               <Phone size={12} /> {order.worker_phone}
             </a>
+          </div>
+        </Card>
+      )}
+
+      {/* Labour approval — worker submitted > ₹1,000 */}
+      {order.labour_approval_pending && (
+        <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
+          <p className="text-amber-400 font-bold mb-1">⚠️ Labour Approval Required</p>
+          <p className="text-slate-400 text-sm mb-3">
+            Worker requested labour charge of{' '}
+            <span className="text-white font-bold">{formatCurrency(order.labour_pending_amount || 0)}</span>
+            {' '}(exceeds ₹1,000 limit)
+          </p>
+          <div className="flex gap-3">
+            <Button variant="accent" loading={saving} onClick={approveLabour} className="flex-1">
+              Approve ✓
+            </Button>
+            <Button variant="danger" loading={saving} onClick={rejectLabour} className="flex-1">
+              Reject ✗
+            </Button>
           </div>
         </Card>
       )}
