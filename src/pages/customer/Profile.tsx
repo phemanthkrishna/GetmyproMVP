@@ -3,7 +3,8 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { toast } from 'sonner'
 import { BottomNav } from '../../components/BottomNav'
-import { Home, List, User, LogOut, Edit2, Check, X, Plus, Trash2, MapPin } from 'lucide-react'
+import { MapPicker } from '../../components/MapPicker'
+import { Home, List, User, LogOut, Edit2, Check, X, Plus, Trash2, MapPin, Map } from 'lucide-react'
 
 const NAV = [
   { to: '/customer', icon: Home, label: 'Home' },
@@ -22,15 +23,17 @@ export default function CustomerProfile() {
   const [draftName, setDraftName] = useState('')
   const [savingName, setSavingName] = useState(false)
 
-  // Address add form
+  // Add address form
   const [addingAddress, setAddingAddress] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [newAddress, setNewAddress] = useState('')
+  const [showMapForNew, setShowMapForNew] = useState(false)
 
-  // Address edit form
+  // Edit address form
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editLabel, setEditLabel] = useState('')
   const [editAddress, setEditAddress] = useState('')
+  const [showMapForEdit, setShowMapForEdit] = useState(false)
 
   useEffect(() => {
     if (!session?.id) return
@@ -78,13 +81,29 @@ export default function CustomerProfile() {
   }
 
   async function deleteAddress(i: number) {
-    if (await persistAddresses(addresses.filter((_, idx) => idx !== i))) {
+    if (await persistAddresses(addresses.filter((_, idx) => idx !== i)))
       toast.success('Address removed')
-    }
   }
 
   return (
     <div className="page-content px-5 py-6">
+
+      {/* MapPicker for new address */}
+      {showMapForNew && (
+        <MapPicker
+          onConfirm={(_, __, address) => { setNewAddress(address); setShowMapForNew(false) }}
+          onClose={() => setShowMapForNew(false)}
+        />
+      )}
+
+      {/* MapPicker for edit address */}
+      {showMapForEdit && (
+        <MapPicker
+          onConfirm={(_, __, address) => { setEditAddress(address); setShowMapForEdit(false) }}
+          onClose={() => setShowMapForEdit(false)}
+        />
+      )}
+
       <h1 className="text-2xl font-black font-heading text-slate-50 mb-6">My Profile</h1>
 
       {/* Avatar */}
@@ -152,7 +171,6 @@ export default function CustomerProfile() {
           )}
         </div>
 
-        {/* Address list */}
         {addresses.length === 0 && !addingAddress && (
           <p className="text-slate-500 text-sm">No saved addresses yet — add one to speed up booking</p>
         )}
@@ -169,18 +187,27 @@ export default function CustomerProfile() {
                     autoFocus
                     className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
                   />
-                  <input
-                    value={editAddress}
-                    onChange={e => setEditAddress(e.target.value)}
-                    placeholder="Full address"
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
-                  />
+                  {/* Address field + map button */}
+                  <div className="flex gap-2">
+                    <input
+                      value={editAddress}
+                      onChange={e => setEditAddress(e.target.value)}
+                      placeholder="Full address"
+                      className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={() => setShowMapForEdit(true)}
+                      className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shrink-0"
+                    >
+                      <Map size={13} /> Map
+                    </button>
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => saveEdit(i)}
                       className="flex items-center gap-1 px-4 py-2 bg-green-500 text-white text-xs font-bold rounded-xl">
                       <Check size={12} /> Save
                     </button>
-                    <button onClick={() => setEditingIndex(null)}
+                    <button onClick={() => { setEditingIndex(null); setShowMapForEdit(false) }}
                       className="flex items-center gap-1 px-4 py-2 bg-slate-700 text-slate-300 text-xs font-bold rounded-xl">
                       <X size={12} /> Cancel
                     </button>
@@ -220,12 +247,21 @@ export default function CustomerProfile() {
               autoFocus
               className="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
             />
-            <input
-              value={newAddress}
-              onChange={e => setNewAddress(e.target.value)}
-              placeholder="Full address"
-              className="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
-            />
+            {/* Address field + map button */}
+            <div className="flex gap-2">
+              <input
+                value={newAddress}
+                onChange={e => setNewAddress(e.target.value)}
+                placeholder="Full address"
+                className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={() => setShowMapForNew(true)}
+                className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shrink-0"
+              >
+                <Map size={13} /> Map
+              </button>
+            </div>
             <div className="flex gap-2">
               <button onClick={addAddress}
                 className="flex items-center gap-1 px-4 py-2 bg-green-500 text-white text-xs font-bold rounded-xl">

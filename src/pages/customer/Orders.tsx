@@ -4,13 +4,12 @@ import { useOrders } from '../../hooks/useOrders'
 import { StatusBadge } from '../../components/StatusBadge'
 import { BottomNav } from '../../components/BottomNav'
 import { formatDate, formatCurrency } from '../../lib/utils'
-import { Home, BookOpen, List } from 'lucide-react'
-import { ChevronRight } from 'lucide-react'
+import { Home, List, User, ChevronRight } from 'lucide-react'
 
 const NAV = [
   { to: '/customer', icon: Home, label: 'Home' },
-  { to: '/customer/book', icon: BookOpen, label: 'Book' },
   { to: '/customer/orders', icon: List, label: 'Orders' },
+  { to: '/customer/profile', icon: User, label: 'Profile' },
 ]
 
 export default function CustomerOrders() {
