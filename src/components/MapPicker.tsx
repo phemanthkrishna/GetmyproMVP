@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useJsApiLoader, GoogleMap, Marker, Autocomplete } from '@react-google-maps/api'
 import { MapPin, Crosshair, X, Check, Search } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import { supabase } from '../lib/supabase'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const LIBRARIES: ('places')[] = ['places']
@@ -38,20 +39,11 @@ interface Props {
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { 'Accept-Language': 'en', 'User-Agent': 'GetMyPro-App' } }
-    )
-    const data = await res.json()
-    const d = data.address || {}
-    const parts = [
-      d.house_number,
-      d.road || d.pedestrian || d.footway,
-      d.suburb || d.neighbourhood || d.quarter,
-      d.city || d.town || d.village || d.county,
-      d.state,
-    ].filter(Boolean)
-    return parts.length > 0 ? parts.join(', ') : data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+    const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+      body: { lat, lng },
+    })
+    if (error || !data?.address) throw error
+    return data.address
   } catch {
     return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
   }

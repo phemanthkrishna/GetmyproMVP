@@ -1,0 +1,21 @@
+# Supabase project config
+# Replace YOUR_PROJECT_REF with the value from:
+# Supabase Dashboard → Project Settings → General → Reference ID
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[functions]
+verify_jwt = false
