@@ -216,7 +216,18 @@ export default function CustomerOrderDetail() {
         </Card>
       )}
 
-      {/* ── 5. Quote + Payment ─────────────────────────────────────── */}
+      {/* ── 5. Completion OTP ──────────────────────────────────────── */}
+      {order.status === 'done_uploaded' && (
+        <Card className="mb-4 border-green-500/30 bg-green-500/10">
+          <p className="text-green-400 font-bold mb-1">✅ Completion OTP</p>
+          <p className="text-slate-400 text-sm mb-2">Share this code with the worker to confirm job is done:</p>
+          <div className="text-5xl font-black text-white tracking-widest text-center py-3">
+            {order.comp_otp}
+          </div>
+        </Card>
+      )}
+
+      {/* ── 6. Quote + Payment ─────────────────────────────────────── */}
       {order.status === 'quote_sent' && order.mat_cost_admin != null && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">📋 Your Quote</p>
@@ -295,18 +306,7 @@ export default function CustomerOrderDetail() {
         </div>
       </Card>
 
-      {/* ── 7. Completion OTP ──────────────────────────────────────── */}
-      {order.status === 'done_uploaded' && (
-        <Card className="mb-4 border-green-500/30 bg-green-500/10">
-          <p className="text-green-400 font-bold mb-1">✅ Completion OTP</p>
-          <p className="text-slate-400 text-sm mb-2">Share this code with the worker to confirm job is done:</p>
-          <div className="text-5xl font-black text-white tracking-widest text-center py-3">
-            {order.comp_otp}
-          </div>
-        </Card>
-      )}
-
-      {/* ── 8. Completed: photo + rating ───────────────────────────── */}
+      {/* ── 7. Completed: photo + rating ───────────────────────────── */}
       {order.status === 'completed' && (
         <>
           {order.job_photo_url && (
