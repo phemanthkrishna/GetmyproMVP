@@ -16,6 +16,33 @@ const NAV = [
   { to: '/customer/orders', icon: List, label: 'Orders' },
 ]
 
+const BANNERS = [
+  {
+    emoji: '🏠',
+    title: 'Trusted Pros at your doorstep',
+    desc: 'Background-verified professionals for every home service',
+    from: '#f97316', to: '#ea580c',
+  },
+  {
+    emoji: '⚡',
+    title: 'Same-day service available',
+    desc: 'Book now and get a Pro at your door within hours',
+    from: '#8b5cf6', to: '#7c3aed',
+  },
+  {
+    emoji: '✅',
+    title: 'Verified & rated professionals',
+    desc: 'Every Pro is Aadhaar-verified and customer-rated',
+    from: '#10b981', to: '#059669',
+  },
+  {
+    emoji: '💰',
+    title: 'Transparent pricing only',
+    desc: 'See the full quote before any work begins — no surprises',
+    from: '#3b82f6', to: '#2563eb',
+  },
+]
+
 interface ReadyAlert { service: string; emoji: string }
 
 export default function CustomerHome() {
@@ -24,6 +51,12 @@ export default function CustomerHome() {
   const { orders } = useOrders({ customer_id: session?.id || '' })
   const active = orders.filter(o => !['completed', 'cancelled'].includes(o.status))
   const [readyAlerts, setReadyAlerts] = useState<ReadyAlert[]>([])
+  const [bannerIndex, setBannerIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => setBannerIndex(i => (i + 1) % BANNERS.length), 3500)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (!session?.id) return
@@ -153,6 +186,46 @@ export default function CustomerHome() {
           </div>
         </div>
       )}
+
+      {/* Animated Banner */}
+      <div className="mb-5 relative overflow-hidden rounded-2xl" style={{ minHeight: 96 }}>
+        {BANNERS.map((b, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 flex items-center gap-4 px-5 py-4"
+            style={{
+              background: `linear-gradient(135deg, ${b.from}, ${b.to})`,
+              opacity: i === bannerIndex ? 1 : 0,
+              transform: i === bannerIndex ? 'translateX(0)' : 'translateX(32px)',
+              transition: 'opacity 600ms ease, transform 600ms ease',
+              pointerEvents: i === bannerIndex ? 'auto' : 'none',
+            }}
+          >
+            <span className="text-4xl shrink-0" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.3))' }}>
+              {b.emoji}
+            </span>
+            <div>
+              <p className="font-black text-white text-base leading-tight">{b.title}</p>
+              <p className="text-white/75 text-xs mt-0.5 leading-snug">{b.desc}</p>
+            </div>
+          </div>
+        ))}
+        {/* Dot indicators */}
+        <div className="absolute bottom-2 right-3 flex gap-1.5">
+          {BANNERS.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setBannerIndex(i)}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === bannerIndex ? 16 : 6,
+                height: 6,
+                background: i === bannerIndex ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* Services */}
       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Services</p>
