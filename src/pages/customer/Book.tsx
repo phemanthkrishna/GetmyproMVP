@@ -89,12 +89,17 @@ export default function Book() {
         service: selectedService,
         service_emoji: serviceObj?.emoji || '🔧',
         address,
-        customer_lat: lat ?? undefined,
-        customer_lng: lng ?? undefined,
+        customer_lat: lat ?? null,
+        customer_lng: lng ?? null,
         problem_description: problem || null,
         status: 'booked',
         booking_amt: BOOKING_FEE,
         booking_paid: false,
+        final_paid: false,
+        quote_materials: [],
+        mat_payment_done: false,
+        mat_discount_pct: 0,
+        mat_commission: 0,
         arrival_otp: arrivalOtp,
         comp_otp: compOtp,
       })
@@ -108,8 +113,9 @@ export default function Book() {
 
       toast.success('Order placed! Our team will contact you shortly.')
       navigate(`/customer/orders/${orderId}`)
-    } catch {
-      toast.error('Failed to place order, please try again')
+    } catch (err: any) {
+      console.error('Order insert failed:', err)
+      toast.error(err?.message || 'Failed to place order, please try again')
     }
     setLoading(false)
   }

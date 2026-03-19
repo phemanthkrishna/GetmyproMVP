@@ -59,7 +59,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
 const HEADER_H = 56
 const SEARCH_H = 56
-const FOOTER_H = 252
+const FOOTER_H = 292
 
 const pinIcon = (color: string, size: number) =>
   `data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="${encodeURIComponent(color)}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
@@ -102,6 +102,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
   const [geocoding, setGeocoding] = useState(false)
   const [locating, setLocating] = useState(false)
   const [apartmentName, setApartmentName] = useState('')
+  const [streetName, setStreetName] = useState('')
   const [flatNo, setFlatNo] = useState('')
   const [floorNo, setFloorNo] = useState('')
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -158,6 +159,7 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
       apartmentName,
       flatNo && `Flat ${flatNo}`,
       floorNo && `Floor ${floorNo}`,
+      streetName,
     ].filter(Boolean).join(', ')
     const fullAddress = details ? `${details}, ${address}` : address
     onConfirm(pin.lat, pin.lng, fullAddress)
@@ -263,6 +265,12 @@ export function MapPicker({ initialLat, initialLng, onConfirm, onClose }: Props)
           placeholder="Apartment / Building name (e.g. Sunrise Towers)"
           value={apartmentName}
           onChange={e => setApartmentName(e.target.value)}
+          style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 10px', color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+        />
+        <input
+          placeholder="Street name (e.g. MG Road)"
+          value={streetName}
+          onChange={e => setStreetName(e.target.value)}
           style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 10px', color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
         />
         <div style={{ display: 'flex', gap: 8 }}>
