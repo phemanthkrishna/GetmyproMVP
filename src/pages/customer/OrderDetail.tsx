@@ -94,6 +94,19 @@ export default function CustomerOrderDetail() {
         <div className="ml-auto"><StatusBadge status={order.status} /></div>
       </div>
 
+      {/* Live tracking map — worker en route */}
+      {order.worker_id && (order.status === 'booked' || order.status === 'worker_visiting') && (
+        <Card className="mb-4">
+          <p className="font-bold text-slate-50 mb-3">🚗 Live Tracking</p>
+          <LiveTrackingMap
+            workerId={order.worker_id}
+            workerName={order.worker_name || 'Pro'}
+            customerLat={order.customer_lat}
+            customerLng={order.customer_lng}
+          />
+        </Card>
+      )}
+
       {/* Journey */}
       <Card className="mb-4">
         <p className="font-bold text-slate-50 mb-4">Order Journey</p>
@@ -127,19 +140,6 @@ export default function CustomerOrderDetail() {
           />
         </div>
       </Card>
-
-      {/* Live tracking map — worker en route */}
-      {order.worker_id && (order.status === 'booked' || order.status === 'worker_visiting') && (
-        <Card className="mb-4">
-          <p className="font-bold text-slate-50 mb-3">🚗 Live Tracking</p>
-          <LiveTrackingMap
-            workerId={order.worker_id}
-            workerName={order.worker_name || 'Pro'}
-            customerLat={order.customer_lat}
-            customerLng={order.customer_lng}
-          />
-        </Card>
-      )}
 
       {/* Arrival OTP — show when worker assigned but not yet visiting confirmed */}
       {order.worker_id && order.status === 'booked' && (
