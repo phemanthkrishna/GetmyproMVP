@@ -80,7 +80,16 @@ export default function CustomerOrderDetail() {
   const [saving, setSaving] = useState(false)
   const [workerPhoto, setWorkerPhoto] = useState<string | null>(null)
   const [paymentSubmitted, setPaymentSubmitted] = useState(false)
+  const [showRatingPopup, setShowRatingPopup] = useState(false)
+  const [hoverRating, setHoverRating] = useState(0)
   const navigate = useNavigate()
+
+  // Auto-open rating popup when order completes and hasn't been rated
+  useEffect(() => {
+    if (order?.status === 'completed' && !order.rating) {
+      setShowRatingPopup(true)
+    }
+  }, [order?.status, order?.rating])
 
   useEffect(() => {
     if (order?.worker_id) {
@@ -133,8 +142,9 @@ export default function CustomerOrderDetail() {
     setRating(val)
     const { error } = await supabase.from('orders').update({ rating: val }).eq('id', order.id)
     if (error) { console.error('Rating submit failed:', error); return }
-    toast.success('Thank you for your rating! ⭐')
-    refetch()
+    toast.success('Thank you for your rating!')
+    setShowRatingPopup(false)
+    navigate('/customer')
   }
 
   if (loading) return <div className="p-6 text-slate-400">Loading...</div>
@@ -192,22 +202,13 @@ export default function CustomerOrderDetail() {
         <JourneyTracker status={order.status} workerId={order.worker_id} />
       </Card>
 
-      {/* ── 3. Rating + Completion Photo (completed) ───────────────── */}
+      {/* ── 3. Completion Photo + Rating badge (completed) ─────────── */}
       {order.status === 'completed' && (
         <>
-          {!order.rating && (
+          {order.job_photo_url && (
             <Card className="mb-4">
-              <p className="font-bold text-slate-50 mb-3">Rate your experience</p>
-              <div className="flex gap-2 justify-center">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} onClick={() => submitRating(n)}>
-                    <Star
-                      size={32}
-                      className={n <= rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}
-                    />
-                  </button>
-                ))}
-              </div>
+              <p className="font-bold text-slate-50 mb-2">Completion Photo</p>
+              <img src={order.job_photo_url} alt="Job done" className="rounded-xl w-full object-cover" />
             </Card>
           )}
           {order.rating && (
@@ -216,12 +217,6 @@ export default function CustomerOrderDetail() {
                 <span className="text-amber-400">{'★'.repeat(order.rating)}</span>
                 <span className="text-slate-400 text-sm">You rated this job</span>
               </div>
-            </Card>
-          )}
-          {order.job_photo_url && (
-            <Card className="mb-4">
-              <p className="font-bold text-slate-50 mb-2">Completion Photo</p>
-              <img src={order.job_photo_url} alt="Job done" className="rounded-xl w-full object-cover" />
             </Card>
           )}
         </>
@@ -341,6 +336,57 @@ export default function CustomerOrderDetail() {
         </div>
       </Card>
 
+      {/* ── Rating Popup ───────────────────────────────────────────── */}
+      {showRatingPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md bg-slate-900 rounded-t-3xl px-6 pt-8 pb-12"
+            style={{ animation: 'slideUp 350ms cubic-bezier(0.32,0.72,0,1)' }}
+          >
+            {/* Drag handle */}
+            <div className="w-10 h-1 rounded-full bg-slate-700 mx-auto mb-8" />
+
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3" style={{ animation: 'summaryPulse 2.4s ease-in-out infinite' }}>🎉</div>
+              <h2 className="font-black text-slate-50 text-2xl">Job Complete!</h2>
+              <p className="text-slate-400 text-sm mt-1">How was your experience with {order.worker_name || 'your Pro'}?</p>
+            </div>
+
+            <div className="flex gap-3 justify-center mb-8">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n}
+                  onClick={() => submitRating(n)}
+                  onMouseEnter={() => setHoverRating(n)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  style={{ transition: 'transform 150ms', transform: n <= (hoverRating || rating) ? 'scale(1.2)' : 'scale(1)' }}
+                >
+                  <Star
+                    size={44}
+                    className={n <= (hoverRating || rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => { setShowRatingPopup(false); navigate('/customer') }}
+              className="w-full py-3 text-slate-500 text-sm"
+            >
+              Skip for now
+            </button>
+          </div>
+          <style>{`
+            @keyframes slideUp {
+              from { transform: translateY(100%); opacity: 0; }
+              to   { transform: translateY(0);    opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   )
 }
