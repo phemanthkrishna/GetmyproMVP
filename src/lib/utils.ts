@@ -23,7 +23,7 @@ export function formatCurrency(amount: number): string {
 export function generateOtp(): string {
   const arr = new Uint32Array(1)
   crypto.getRandomValues(arr)
-  return String(100000 + (arr[0] % 900000))
+  return String(1000 + (arr[0] % 9000))
 }
 
 export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

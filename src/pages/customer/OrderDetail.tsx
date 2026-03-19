@@ -192,7 +192,42 @@ export default function CustomerOrderDetail() {
         <JourneyTracker status={order.status} workerId={order.worker_id} />
       </Card>
 
-      {/* ── 3. Live Tracking (worker in field) ─────────────────────── */}
+      {/* ── 3. Rating + Completion Photo (completed) ───────────────── */}
+      {order.status === 'completed' && (
+        <>
+          {!order.rating && (
+            <Card className="mb-4">
+              <p className="font-bold text-slate-50 mb-3">Rate your experience</p>
+              <div className="flex gap-2 justify-center">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button key={n} onClick={() => submitRating(n)}>
+                    <Star
+                      size={32}
+                      className={n <= rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}
+                    />
+                  </button>
+                ))}
+              </div>
+            </Card>
+          )}
+          {order.rating && (
+            <Card className="mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-400">{'★'.repeat(order.rating)}</span>
+                <span className="text-slate-400 text-sm">You rated this job</span>
+              </div>
+            </Card>
+          )}
+          {order.job_photo_url && (
+            <Card className="mb-4">
+              <p className="font-bold text-slate-50 mb-2">Completion Photo</p>
+              <img src={order.job_photo_url} alt="Job done" className="rounded-xl w-full object-cover" />
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* ── 4. Live Tracking (worker in field) ─────────────────────── */}
       {showLiveTracking && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">🚗 Live Tracking</p>
@@ -306,40 +341,6 @@ export default function CustomerOrderDetail() {
         </div>
       </Card>
 
-      {/* ── 7. Completed: photo + rating ───────────────────────────── */}
-      {order.status === 'completed' && (
-        <>
-          {order.job_photo_url && (
-            <Card className="mb-4">
-              <p className="font-bold text-slate-50 mb-2">Completion Photo</p>
-              <img src={order.job_photo_url} alt="Job done" className="rounded-xl w-full object-cover" />
-            </Card>
-          )}
-          {!order.rating && (
-            <Card className="mb-4">
-              <p className="font-bold text-slate-50 mb-3">Rate your experience</p>
-              <div className="flex gap-2 justify-center">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} onClick={() => submitRating(n)}>
-                    <Star
-                      size={32}
-                      className={n <= rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}
-                    />
-                  </button>
-                ))}
-              </div>
-            </Card>
-          )}
-          {order.rating && (
-            <Card>
-              <div className="flex items-center gap-2">
-                <span className="text-amber-400">{'★'.repeat(order.rating)}</span>
-                <span className="text-slate-400 text-sm">You rated this job</span>
-              </div>
-            </Card>
-          )}
-        </>
-      )}
     </div>
   )
 }

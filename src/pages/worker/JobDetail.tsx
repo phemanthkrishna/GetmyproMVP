@@ -296,7 +296,7 @@ export default function JobDetail() {
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-2">Enter Arrival OTP</p>
           <p className="text-slate-400 text-sm mb-4">Ask the customer for their arrival code</p>
-          <OtpInput value={arrivalOtp} onChange={setArrivalOtp} />
+          <OtpInput value={arrivalOtp} onChange={setArrivalOtp} length={4} />
           <Button size="lg" variant="accent" loading={saving} onClick={confirmArrival} className="mt-4">
             Confirm Arrival ✓
           </Button>
@@ -485,7 +485,7 @@ export default function JobDetail() {
           )}
           <p className="font-bold text-slate-50 mb-2">Enter Completion OTP</p>
           <p className="text-slate-400 text-sm mb-4">Ask customer for their completion code</p>
-          <OtpInput value={compOtp} onChange={setCompOtp} />
+          <OtpInput value={compOtp} onChange={setCompOtp} length={4} />
           <Button size="lg" variant="primary" loading={saving} onClick={verifyCompOtp} className="mt-4">
             Verify OTP & Complete Job ✓
           </Button>
