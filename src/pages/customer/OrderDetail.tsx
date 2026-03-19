@@ -143,9 +143,8 @@ export default function CustomerOrderDetail() {
   const summaryKey = getSummaryKey(order.status, order.worker_id, order.mat_cost_admin)
   const summary = STEP_SUMMARY[summaryKey] ?? STEP_SUMMARY['booked_searching']
 
-  // Show live tracking while worker is actively in the field
-  const showLiveTracking = !!order.worker_id &&
-    ['booked', 'worker_visiting', 'inspecting', 'in_progress'].includes(order.status)
+  // Show live tracking while worker is en route
+  const showLiveTracking = !!order.worker_id && order.status === 'booked'
 
   return (
     <div className="page-content px-5 py-6">
@@ -217,35 +216,7 @@ export default function CustomerOrderDetail() {
         </Card>
       )}
 
-      {/* ── 5. Details ─────────────────────────────────────────────── */}
-      <Card className="mb-4">
-        <p className="font-bold text-slate-50 mb-3">Details</p>
-        <div className="flex flex-col gap-2 text-sm">
-          <Row label="Address" value={order.address} />
-          {order.problem_description && <Row label="Problem" value={order.problem_description} />}
-          {order.worker_name && (
-            <div className="flex items-center gap-3 py-1">
-              <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-sm font-bold text-slate-50 shrink-0">
-                {workerPhoto
-                  ? <img src={workerPhoto} alt={order.worker_name} className="w-full h-full object-cover" />
-                  : order.worker_name[0]
-                }
-              </div>
-              <div>
-                <p className="text-slate-50 text-sm font-semibold">{order.worker_name}</p>
-                <p className="text-slate-500 text-xs">Your assigned Pro</p>
-              </div>
-            </div>
-          )}
-          <Row label="Booking fee" value={formatCurrency(order.booking_amt)} />
-          <Row
-            label="Payment status"
-            value={order.booking_paid ? '✅ Booking paid' : '⏳ Awaiting payment confirmation'}
-          />
-        </div>
-      </Card>
-
-      {/* ── 6. Quote + Payment ─────────────────────────────────────── */}
+      {/* ── 5. Quote + Payment ─────────────────────────────────────── */}
       {order.status === 'quote_sent' && order.mat_cost_admin != null && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">📋 Your Quote</p>
@@ -295,6 +266,34 @@ export default function CustomerOrderDetail() {
           </div>
         </Card>
       )}
+
+      {/* ── 6. Details ─────────────────────────────────────────────── */}
+      <Card className="mb-4">
+        <p className="font-bold text-slate-50 mb-3">Details</p>
+        <div className="flex flex-col gap-2 text-sm">
+          <Row label="Address" value={order.address} />
+          {order.problem_description && <Row label="Problem" value={order.problem_description} />}
+          {order.worker_name && (
+            <div className="flex items-center gap-3 py-1">
+              <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-sm font-bold text-slate-50 shrink-0">
+                {workerPhoto
+                  ? <img src={workerPhoto} alt={order.worker_name} className="w-full h-full object-cover" />
+                  : order.worker_name[0]
+                }
+              </div>
+              <div>
+                <p className="text-slate-50 text-sm font-semibold">{order.worker_name}</p>
+                <p className="text-slate-500 text-xs">Your assigned Pro</p>
+              </div>
+            </div>
+          )}
+          <Row label="Booking fee" value={formatCurrency(order.booking_amt)} />
+          <Row
+            label="Payment status"
+            value={order.booking_paid ? '✅ Booking paid' : '⏳ Awaiting payment confirmation'}
+          />
+        </div>
+      </Card>
 
       {/* ── 7. Completion OTP ──────────────────────────────────────── */}
       {order.status === 'done_uploaded' && (
