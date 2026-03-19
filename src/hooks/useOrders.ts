@@ -50,13 +50,14 @@ export function useOrder(orderId: string) {
   useEffect(() => {
     fetchOrder()
 
-    // Real-time subscription
+    // Real-time subscription — no server-side filter (requires REPLICA IDENTITY FULL)
+    // Instead filter client-side on the payload's id field
     const channel = supabase
       .channel('order-' + orderId)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => setOrder(payload.new as Order)
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        (payload) => { if (payload.new.id === orderId) setOrder(payload.new as Order) }
       )
       .subscribe()
 
