@@ -142,6 +142,21 @@ export default function CustomerOrderDetail() {
     setRating(val)
     const { error } = await supabase.from('orders').update({ rating: val }).eq('id', order.id)
     if (error) { console.error('Rating submit failed:', error); return }
+    if (order.worker_id) {
+      const { data: w } = await supabase
+        .from('workers')
+        .select('avg_rating, total_ratings')
+        .eq('id', order.worker_id)
+        .single()
+      if (w) {
+        const newTotal = (w.total_ratings || 0) + 1
+        const newAvg = ((w.avg_rating || 0) * (w.total_ratings || 0) + val) / newTotal
+        await supabase.from('workers').update({
+          avg_rating: Math.round(newAvg * 100) / 100,
+          total_ratings: newTotal,
+        }).eq('id', order.worker_id)
+      }
+    }
     toast.success('Thank you for your rating!')
     setShowRatingPopup(false)
     navigate('/customer')

@@ -30,6 +30,8 @@ export interface Worker {
   upi_id?: string
   address?: string
   experience_years?: number
+  avg_rating?: number
+  total_ratings?: number
   verified: boolean
   service_categories: string[]
   is_online: boolean

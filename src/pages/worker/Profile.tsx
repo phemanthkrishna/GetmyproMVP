@@ -99,6 +99,13 @@ export default function WorkerProfile() {
         <div>
           <p className="text-xl font-black text-slate-50">{session?.name}</p>
           <p className="text-slate-400 text-sm">{session?.phone}</p>
+          {(worker?.total_ratings ?? 0) > 0 && (
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-amber-400 text-sm">{'★'.repeat(Math.round(worker!.avg_rating!))}</span>
+              <span className="text-slate-300 text-xs font-semibold">{worker!.avg_rating!.toFixed(1)}</span>
+              <span className="text-slate-500 text-xs">({worker!.total_ratings} ratings)</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -109,6 +116,13 @@ export default function WorkerProfile() {
           label="Status"
           value={worker?.verified ? '✓ Verified' : '⏳ Pending Verification'}
           valueClass={worker?.verified ? 'text-green-400' : 'text-amber-400'}
+        />
+        <Row
+          label="Rating"
+          value={(worker?.total_ratings ?? 0) > 0
+            ? `${worker!.avg_rating!.toFixed(1)} ★ (${worker!.total_ratings} jobs)`
+            : 'No ratings yet'}
+          valueClass={(worker?.total_ratings ?? 0) > 0 ? 'text-amber-400' : 'text-slate-500'}
         />
         <Row label="Member since" value={worker?.created_at ? new Date(worker.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
       </div>
