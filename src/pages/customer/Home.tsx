@@ -8,12 +8,12 @@ import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../hooks/useOrders'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
-import { Home, BookOpen, List, LogOut } from 'lucide-react'
+import { Home, List, User, LogOut } from 'lucide-react'
 
 const NAV = [
   { to: '/customer', icon: Home, label: 'Home' },
-  { to: '/customer/book', icon: BookOpen, label: 'Book' },
   { to: '/customer/orders', icon: List, label: 'Orders' },
+  { to: '/customer/profile', icon: User, label: 'Profile' },
 ]
 
 const BANNERS = [

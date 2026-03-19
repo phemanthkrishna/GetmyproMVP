@@ -16,6 +16,7 @@ export interface Profile {
   role: Role
   name: string
   session_token?: string
+  saved_addresses?: Array<{ label: string; address: string }>
   created_at: string
 }
 

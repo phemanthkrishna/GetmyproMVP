@@ -10,12 +10,12 @@ import { MapPicker } from '../../components/MapPicker'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { generateOtp, generateOrderId, formatCurrency } from '../../lib/utils'
-import { Home, BookOpen, List, MapPin } from 'lucide-react'
+import { Home, List, User, MapPin } from 'lucide-react'
 
 const NAV = [
   { to: '/customer', icon: Home, label: 'Home' },
-  { to: '/customer/book', icon: BookOpen, label: 'Book' },
   { to: '/customer/orders', icon: List, label: 'Orders' },
+  { to: '/customer/profile', icon: User, label: 'Profile' },
 ]
 
 export default function Book() {

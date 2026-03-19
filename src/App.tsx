@@ -12,6 +12,7 @@ import CustomerHome from './pages/customer/Home'
 import Book from './pages/customer/Book'
 import CustomerOrders from './pages/customer/Orders'
 import CustomerOrderDetail from './pages/customer/OrderDetail'
+import CustomerProfile from './pages/customer/Profile'
 
 // Worker
 import WorkerLogin from './pages/worker/Login'
@@ -62,6 +63,7 @@ export default function App() {
       <Route path="/customer/book" element={<RequireAuth role="customer"><Book /></RequireAuth>} />
       <Route path="/customer/orders" element={<RequireAuth role="customer"><CustomerOrders /></RequireAuth>} />
       <Route path="/customer/orders/:orderId" element={<RequireAuth role="customer"><CustomerOrderDetail /></RequireAuth>} />
+      <Route path="/customer/profile" element={<RequireAuth role="customer"><CustomerProfile /></RequireAuth>} />
 
       {/* Worker */}
       <Route path="/worker/login" element={<WorkerLogin />} />
