@@ -23,6 +23,8 @@ export default function WorkerRegister() {
   const verifierRef = useRef<RecaptchaVerifier | null>(null)
   const [aadhaarNumber, setAadhaarNumber] = useState('')
   const [upiId, setUpiId] = useState('')
+  const [workerAddress, setWorkerAddress] = useState('')
+  const [experienceYears, setExperienceYears] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
   const [loading, setLoading] = useState(false)
@@ -139,6 +141,8 @@ export default function WorkerRegister() {
         aadhaar_url: aadhaarNumber.replace(/\s/g, ''),
         photo_url: publicUrl,
         upi_id: upiId.trim() || null,
+        address: workerAddress.trim(),
+        experience_years: experienceYears,
         verified: false,
         is_active: true,
         is_online: false,
@@ -264,12 +268,40 @@ export default function WorkerRegister() {
             value={upiId}
             onChange={e => setUpiId(e.target.value)}
           />
-          <p className="text-slate-600 text-xs mt-2 mb-6">You can update this later in your profile.</p>
+          <p className="text-slate-600 text-xs mt-2 mb-4">You can update this later in your profile.</p>
+          <Input
+            label="Your Address"
+            placeholder="House no., Street, Area, City"
+            value={workerAddress}
+            onChange={e => setWorkerAddress(e.target.value)}
+          />
+          <div className="mt-4">
+            <label className="block text-sm text-slate-400 mb-1 font-medium">Years of Experience</label>
+            <div className="grid grid-cols-4 gap-2">
+              {['0–1', '1–3', '3–5', '5–10', '10–15', '15–20', '20+'].map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setExperienceYears(opt)}
+                  className={`py-2 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                    experienceYears === opt
+                      ? 'border-orange-500 bg-orange-500/20 text-orange-300'
+                      : 'border-slate-700 bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mb-6" />
           <Button
             size="lg"
             variant="accent"
             onClick={() => {
               if (aadhaarNumber.replace(/\s/g, '').length !== 12) return toast.error('Enter valid 12-digit Aadhaar number')
+              if (!workerAddress.trim()) return toast.error('Enter your address')
+              if (!experienceYears) return toast.error('Select your years of experience')
               setStep('photo')
             }}
           >

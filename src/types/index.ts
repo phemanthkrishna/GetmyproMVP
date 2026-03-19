@@ -27,6 +27,8 @@ export interface Worker {
   aadhaar_url?: string
   photo_url?: string
   upi_id?: string
+  address?: string
+  experience_years?: number
   verified: boolean
   service_categories: string[]
   is_online: boolean
