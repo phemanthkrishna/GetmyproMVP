@@ -1,7 +1,9 @@
 import { JOURNEY_STEPS, getStepIndex } from '../constants'
 
-export function JourneyTracker({ status }: { status: string }) {
-  const currentIndex = getStepIndex(status)
+export function JourneyTracker({ status, workerId }: { status: string; workerId?: string | null }) {
+  // When status is 'booked' but a worker is already assigned, the worker is
+  // en route — show "Worker Visiting" (index 1) instead of "Booking Placed" (index 0).
+  const currentIndex = (status === 'booked' && workerId) ? 1 : getStepIndex(status)
   const total = JOURNEY_STEPS.length
   const progressPct = total > 1 ? (currentIndex / (total - 1)) * 100 : 0
 

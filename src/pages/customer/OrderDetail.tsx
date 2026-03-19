@@ -110,8 +110,19 @@ export default function CustomerOrderDetail() {
       {/* Journey */}
       <Card className="mb-4">
         <p className="font-bold text-slate-50 mb-4">Order Journey</p>
-        <JourneyTracker status={order.status} />
+        <JourneyTracker status={order.status} workerId={order.worker_id} />
       </Card>
+
+      {/* Arrival OTP — show when worker assigned but not yet visiting confirmed */}
+      {order.worker_id && order.status === 'booked' && (
+        <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
+          <p className="text-amber-400 font-bold mb-1">🚗 Arrival OTP</p>
+          <p className="text-slate-400 text-sm mb-2">Share this code with the worker when they arrive:</p>
+          <div className="text-4xl font-black text-white tracking-widest text-center py-2">
+            {order.arrival_otp}
+          </div>
+        </Card>
+      )}
 
       {/* Details */}
       <Card className="mb-4">
@@ -140,17 +151,6 @@ export default function CustomerOrderDetail() {
           />
         </div>
       </Card>
-
-      {/* Arrival OTP — show when worker assigned but not yet visiting confirmed */}
-      {order.worker_id && order.status === 'booked' && (
-        <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
-          <p className="text-amber-400 font-bold mb-1">🚗 Arrival OTP</p>
-          <p className="text-slate-400 text-sm mb-2">Share this code with the worker when they arrive:</p>
-          <div className="text-4xl font-black text-white tracking-widest text-center py-2">
-            {order.arrival_otp}
-          </div>
-        </Card>
-      )}
 
       {/* Status-specific actions */}
       {order.status === 'booked' && !order.worker_id && (

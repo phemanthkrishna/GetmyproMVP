@@ -35,7 +35,7 @@ export default function JobDetail() {
   }, [session?.id])
 
   // Broadcast live GPS while en route to customer
-  const isEnRoute = order?.worker_id === session?.id && ['booked', 'worker_visiting'].includes(order?.status ?? '')
+  const isEnRoute = order?.worker_id === session?.id && order?.status === 'booked'
   useWorkerLocation(session?.id ?? '', isEnRoute)
 
   // OTP rate-limiting state (5 attempts → 60s lockout per OTP type)
@@ -97,9 +97,9 @@ export default function JobDetail() {
     }
     setArrivalAttempts(0)
     setSaving(true)
-    const { error } = await supabase.from('orders').update({ status: 'worker_visiting' }).eq('id', order!.id)
+    const { error } = await supabase.from('orders').update({ status: 'inspecting' }).eq('id', order!.id)
     if (error) toast.error('Failed to confirm arrival, please try again')
-    else { toast.success('Arrival confirmed! ✓'); refetch() }
+    else { toast.success('Arrived! Start your inspection 🔍'); refetch() }
     setSaving(false)
   }
 
@@ -299,17 +299,6 @@ export default function JobDetail() {
           <OtpInput value={arrivalOtp} onChange={setArrivalOtp} />
           <Button size="lg" variant="accent" loading={saving} onClick={confirmArrival} className="mt-4">
             Confirm Arrival ✓
-          </Button>
-        </Card>
-      )}
-
-      {/* worker_visiting: show Start Inspection button */}
-      {isMyJob && order.status === 'worker_visiting' && (
-        <Card className="mb-4">
-          <p className="font-bold text-slate-50 mb-2">Arrived at Customer</p>
-          <p className="text-slate-400 text-sm mb-4">Inspect the job and assess what's needed before sending a quote.</p>
-          <Button size="lg" variant="accent" loading={saving} onClick={startInspection}>
-            Start Inspection 🔍
           </Button>
         </Card>
       )}
