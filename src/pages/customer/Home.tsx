@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../hooks/useOrders'
 import { supabase } from '../../lib/supabase'
 import { formatDate } from '../../lib/utils'
-import { Home, BookOpen, List, ChevronRight, LogOut } from 'lucide-react'
+import { Home, BookOpen, List, LogOut } from 'lucide-react'
 
 const NAV = [
   { to: '/customer', icon: Home, label: 'Home' },
@@ -156,19 +156,16 @@ export default function CustomerHome() {
 
       {/* Services */}
       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Services</p>
-      <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-3 gap-3">
         {SERVICES.map(s => (
           <button
             key={s.id}
             onClick={() => navigate(`/customer/book?service=${encodeURIComponent(s.name)}`)}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-800 btn-press text-left transition-colors"
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-800 border border-slate-700 py-4 px-2 btn-press transition-colors hover:border-orange-500/50 hover:bg-slate-700"
           >
-            <span className="text-xl w-8 text-center">{s.emoji}</span>
-            <div className="flex-1">
-              <p className="font-semibold text-slate-50 text-sm">{s.name}</p>
-              <p className="text-slate-500 text-xs">{s.desc}</p>
-            </div>
-            <ChevronRight size={16} className="text-slate-600" />
+            <span className="text-3xl">{s.emoji}</span>
+            <p className="font-semibold text-slate-50 text-xs text-center leading-tight">{s.name}</p>
+            <p className="text-slate-500 text-xs text-center leading-tight">{s.desc}</p>
           </button>
         ))}
       </div>
