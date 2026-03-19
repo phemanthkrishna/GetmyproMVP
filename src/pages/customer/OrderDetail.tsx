@@ -12,6 +12,66 @@ import { formatDate, formatCurrency } from '../../lib/utils'
 import { TRANSACTION_FEE_RATE } from '../../constants'
 import { ArrowLeft, Star } from 'lucide-react'
 
+// Per-step summary shown in the first card
+const STEP_SUMMARY: Record<string, { icon: string; title: string; desc: string; color: string; bg: string }> = {
+  booked_searching: {
+    icon: '🔍', title: 'Finding your Pro',
+    desc: 'We\'re matching the best professional near you',
+    color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)',
+  },
+  booked_assigned: {
+    icon: '🚗', title: 'Pro is on the way',
+    desc: 'Your Pro accepted the job and is heading to you — share the Arrival OTP when they arrive',
+    color: '#F59E0B', bg: 'rgba(245,158,11,0.08)',
+  },
+  worker_visiting: {
+    icon: '🚗', title: 'Pro has arrived',
+    desc: 'Your Pro is at the door',
+    color: '#F59E0B', bg: 'rgba(245,158,11,0.08)',
+  },
+  inspecting: {
+    icon: '🔍', title: 'Inspection in progress',
+    desc: 'Your Pro is assessing the work needed before sending a quote',
+    color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)',
+  },
+  quote_sent_pending: {
+    icon: '⏳', title: 'Quote being reviewed',
+    desc: 'Admin is confirming material prices — quote will appear shortly',
+    color: '#3B82F6', bg: 'rgba(59,130,246,0.08)',
+  },
+  quote_sent_ready: {
+    icon: '📋', title: 'Quote ready!',
+    desc: 'Review the quote below and submit payment to begin work',
+    color: '#3B82F6', bg: 'rgba(59,130,246,0.08)',
+  },
+  in_progress: {
+    icon: '🔧', title: 'Work in progress',
+    desc: 'Your Pro is working on the job right now',
+    color: '#F97316', bg: 'rgba(249,115,22,0.08)',
+  },
+  done_uploaded: {
+    icon: '📸', title: 'Almost done!',
+    desc: 'Share the Completion OTP below with your Pro to confirm the job is finished',
+    color: '#10B981', bg: 'rgba(16,185,129,0.08)',
+  },
+  completed: {
+    icon: '🎉', title: 'Job Complete!',
+    desc: 'Your service has been completed successfully. Thank you for using GetMyPro!',
+    color: '#10B981', bg: 'rgba(16,185,129,0.08)',
+  },
+  cancelled: {
+    icon: '❌', title: 'Order Cancelled',
+    desc: 'This order has been cancelled',
+    color: '#EF4444', bg: 'rgba(239,68,68,0.08)',
+  },
+}
+
+function getSummaryKey(status: string, workerId?: string | null, matCostAdmin?: number | null): string {
+  if (status === 'booked') return workerId ? 'booked_assigned' : 'booked_searching'
+  if (status === 'quote_sent') return matCostAdmin != null ? 'quote_sent_ready' : 'quote_sent_pending'
+  return status
+}
+
 export default function CustomerOrderDetail() {
   const { orderId } = useParams<{ orderId: string }>()
   const { order, loading, refetch } = useOrder(orderId!)
@@ -49,7 +109,7 @@ export default function CustomerOrderDetail() {
 
   async function cancelOrder() {
     if (!order) return
-    if (order.status === 'cancelled') return // idempotency guard
+    if (order.status === 'cancelled') return
     if (!confirm('Cancel this order? The worker has already visited, so ₹100 of your booking fee will go to the Pro.')) return
     setSaving(true)
     try {
@@ -57,7 +117,7 @@ export default function CustomerOrderDetail() {
       const { error } = await supabase.from('orders').update({
         status: 'cancelled',
         worker_cancellation_pay: workerVisited ? 100 : 0,
-      }).eq('id', order.id).neq('status', 'cancelled') // extra server-side idempotency
+      }).eq('id', order.id).neq('status', 'cancelled')
       if (error) throw error
       toast.success('Order cancelled.')
       refetch()
@@ -80,6 +140,13 @@ export default function CustomerOrderDetail() {
   if (loading) return <div className="p-6 text-slate-400">Loading...</div>
   if (!order) return <div className="p-6 text-slate-400">Order not found</div>
 
+  const summaryKey = getSummaryKey(order.status, order.worker_id, order.mat_cost_admin)
+  const summary = STEP_SUMMARY[summaryKey] ?? STEP_SUMMARY['booked_searching']
+
+  // Show live tracking while worker is actively in the field
+  const showLiveTracking = !!order.worker_id &&
+    ['booked', 'worker_visiting', 'inspecting', 'in_progress'].includes(order.status)
+
   return (
     <div className="page-content px-5 py-6">
       {/* Header */}
@@ -94,12 +161,44 @@ export default function CustomerOrderDetail() {
         <div className="ml-auto"><StatusBadge status={order.status} /></div>
       </div>
 
-      {/* Live tracking map — worker en route */}
-      {order.worker_id && (order.status === 'booked' || order.status === 'worker_visiting') && (
+      {/* ── 1. Status Summary Card (animated) ─────────────────────── */}
+      <Card
+        className="mb-4 overflow-hidden"
+        style={{ borderColor: summary.color + '40', background: summary.bg }}
+      >
+        <div className="flex items-center gap-4">
+          <div
+            className="text-4xl shrink-0 select-none"
+            style={{ animation: 'summaryPulse 2.4s ease-in-out infinite' }}
+          >
+            {summary.icon}
+          </div>
+          <div>
+            <p className="font-black text-slate-50 text-lg leading-tight">{summary.title}</p>
+            <p className="text-slate-400 text-sm mt-0.5 leading-snug">{summary.desc}</p>
+          </div>
+        </div>
+        <style>{`
+          @keyframes summaryPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            40%       { transform: scale(1.18) rotate(-4deg); }
+            60%       { transform: scale(1.18) rotate(4deg); }
+          }
+        `}</style>
+      </Card>
+
+      {/* ── 2. Order Journey ───────────────────────────────────────── */}
+      <Card className="mb-4">
+        <p className="font-bold text-slate-50 mb-4">Order Journey</p>
+        <JourneyTracker status={order.status} workerId={order.worker_id} />
+      </Card>
+
+      {/* ── 3. Live Tracking (worker in field) ─────────────────────── */}
+      {showLiveTracking && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">🚗 Live Tracking</p>
           <LiveTrackingMap
-            workerId={order.worker_id}
+            workerId={order.worker_id!}
             workerName={order.worker_name || 'Pro'}
             customerLat={order.customer_lat}
             customerLng={order.customer_lng}
@@ -107,16 +206,10 @@ export default function CustomerOrderDetail() {
         </Card>
       )}
 
-      {/* Journey */}
-      <Card className="mb-4">
-        <p className="font-bold text-slate-50 mb-4">Order Journey</p>
-        <JourneyTracker status={order.status} workerId={order.worker_id} />
-      </Card>
-
-      {/* Arrival OTP — show when worker assigned but not yet visiting confirmed */}
+      {/* ── 4. Arrival OTP (worker assigned, not yet inspecting) ───── */}
       {order.worker_id && order.status === 'booked' && (
         <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
-          <p className="text-amber-400 font-bold mb-1">🚗 Arrival OTP</p>
+          <p className="text-amber-400 font-bold mb-1">🔑 Arrival OTP</p>
           <p className="text-slate-400 text-sm mb-2">Share this code with the worker when they arrive:</p>
           <div className="text-4xl font-black text-white tracking-widest text-center py-2">
             {order.arrival_otp}
@@ -124,7 +217,7 @@ export default function CustomerOrderDetail() {
         </Card>
       )}
 
-      {/* Details */}
+      {/* ── 5. Details ─────────────────────────────────────────────── */}
       <Card className="mb-4">
         <p className="font-bold text-slate-50 mb-3">Details</p>
         <div className="flex flex-col gap-2 text-sm">
@@ -152,19 +245,7 @@ export default function CustomerOrderDetail() {
         </div>
       </Card>
 
-      {/* Status-specific actions */}
-      {order.status === 'booked' && !order.worker_id && (
-        <Card className="mb-4 border-blue-500/30 bg-blue-500/10">
-          <p className="text-blue-400 text-sm">We're assigning the best Pro near you 🔍</p>
-        </Card>
-      )}
-
-      {order.status === 'worker_visiting' && (
-        <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
-          <p className="text-amber-400 text-sm">Worker is on the way to check the job and send a quote 🚗</p>
-        </Card>
-      )}
-
+      {/* ── 6. Quote + Payment ─────────────────────────────────────── */}
       {order.status === 'quote_sent' && order.mat_cost_admin != null && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">📋 Your Quote</p>
@@ -215,12 +296,7 @@ export default function CustomerOrderDetail() {
         </Card>
       )}
 
-      {order.status === 'in_progress' && (
-        <Card className="mb-4 border-orange-500/30 bg-orange-500/10">
-          <p className="text-orange-400 text-sm">Work in progress! Worker will upload a photo when done 🔧</p>
-        </Card>
-      )}
-
+      {/* ── 7. Completion OTP ──────────────────────────────────────── */}
       {order.status === 'done_uploaded' && (
         <Card className="mb-4 border-green-500/30 bg-green-500/10">
           <p className="text-green-400 font-bold mb-1">✅ Completion OTP</p>
@@ -231,6 +307,7 @@ export default function CustomerOrderDetail() {
         </Card>
       )}
 
+      {/* ── 8. Completed: photo + rating ───────────────────────────── */}
       {order.status === 'completed' && (
         <>
           {order.job_photo_url && (
@@ -239,10 +316,6 @@ export default function CustomerOrderDetail() {
               <img src={order.job_photo_url} alt="Job done" className="rounded-xl w-full object-cover" />
             </Card>
           )}
-          <Card className="mb-4 border-green-500/30 bg-green-500/10">
-            <p className="text-green-400 font-bold">🎉 Job Completed!</p>
-            <p className="text-slate-400 text-sm mt-1">Thank you for using GetMyPro</p>
-          </Card>
           {!order.rating && (
             <Card className="mb-4">
               <p className="font-bold text-slate-50 mb-3">Rate your experience</p>
