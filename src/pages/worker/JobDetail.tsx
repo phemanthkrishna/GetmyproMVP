@@ -11,7 +11,7 @@ import { OtpInput } from '../../components/OtpInput'
 import { StatusBadge } from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
 import { formatDate, formatCurrency } from '../../lib/utils'
-import { ArrowLeft, Upload, Plus, X } from 'lucide-react'
+import { ArrowLeft, Upload, Plus, X, Navigation } from 'lucide-react'
 import type { QuoteMaterial } from '../../types'
 
 const UNITS = ['nos', 'm', 'kg', 'L', 'box', 'pkt']
@@ -256,6 +256,21 @@ export default function JobDetail() {
           {order.problem_description && <Row label="Problem" value={order.problem_description} />}
           <Row label="Date" value={formatDate(order.created_at)} />
         </div>
+        {isMyJob && (
+          <a
+            href={
+              order.customer_lat && order.customer_lng
+                ? `https://www.google.com/maps/dir/?api=1&destination=${order.customer_lat},${order.customer_lng}`
+                : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-2.5 text-sm transition-colors"
+          >
+            <Navigation size={15} />
+            Navigate to Customer
+          </a>
+        )}
       </Card>
 
       {/* Step 1: Accept */}
