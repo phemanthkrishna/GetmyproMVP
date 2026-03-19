@@ -2,10 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '../lib/supabase'
+import { haversineDistance } from '../lib/utils'
 import type { Order } from '../types'
 
 const TIMEOUT_SECS = 30
 const SWIPE_THRESHOLD = 80
+const RADIUS_1KM = 1
+const RADIUS_5KM = 5
+const EXPAND_DELAY_MS = 45_000  // 45s delay before showing to 1–5km workers
 
 interface WorkerMeta {
   service_categories: string[]
@@ -31,6 +35,8 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
   const currentRef = useRef<Order | null>(null)
   const touchStartX = useRef(0)
   const dragActiveRef = useRef(false)
+  const workerPosRef = useRef<{ lat: number; lng: number } | null>(null)
+  const pendingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   // Lock body scroll while screen is visible
   useEffect(() => {
@@ -75,6 +81,49 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
     loadPendingOrders(workerMeta)
   }, [workerMeta])
 
+  // ── Keep worker position updated ────────────────────────────────────
+  useEffect(() => {
+    if (!navigator.geolocation) return
+    const watchId = navigator.geolocation.watchPosition(
+      pos => { workerPosRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude } },
+      () => {},
+      { enableHighAccuracy: true }
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [])
+
+  // ── Queue order based on distance (1km now, 1–5km after 45s) ────────
+  function enqueueWithRadius(order: Order) {
+    const addToQueue = () => setQueue(prev => prev.find(o => o.id === order.id) ? prev : [...prev, order])
+
+    if (!order.customer_lat || !order.customer_lng || !workerPosRef.current) {
+      if ('vibrate' in navigator) navigator.vibrate([400, 150, 400, 150, 400])
+      addToQueue()
+      return
+    }
+
+    const dist = haversineDistance(
+      workerPosRef.current.lat, workerPosRef.current.lng,
+      order.customer_lat, order.customer_lng
+    )
+
+    if (dist <= RADIUS_1KM) {
+      if ('vibrate' in navigator) navigator.vibrate([400, 150, 400, 150, 400])
+      addToQueue()
+    } else if (dist <= RADIUS_5KM) {
+      const timer = setTimeout(async () => {
+        pendingTimers.current.delete(order.id)
+        const { data } = await supabase.from('orders').select('worker_id').eq('id', order.id).single()
+        if (!data?.worker_id) {
+          if ('vibrate' in navigator) navigator.vibrate([400, 150, 400])
+          addToQueue()
+        }
+      }, EXPAND_DELAY_MS)
+      pendingTimers.current.set(order.id, timer)
+    }
+    // > 5km: silently ignore
+  }
+
   async function isBusy(): Promise<boolean> {
     const { data } = await supabase
       .from('orders')
@@ -95,9 +144,18 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
       .not('declined_worker_ids', 'cs', `{${workerId}}`)
       .order('created_at', { ascending: true })
     const cats = meta.service_categories || []
-    const relevant = ((data || []) as Order[]).filter(o =>
-      cats.length === 0 || cats.includes(o.service)
-    )
+    const now = Date.now()
+    const relevant = ((data || []) as Order[]).filter(o => {
+      if (cats.length > 0 && !cats.includes(o.service)) return false
+      if (!o.customer_lat || !o.customer_lng || !workerPosRef.current) return true
+      const dist = haversineDistance(
+        workerPosRef.current.lat, workerPosRef.current.lng,
+        o.customer_lat, o.customer_lng
+      )
+      if (dist <= RADIUS_1KM) return true
+      if (dist <= RADIUS_5KM) return (now - new Date(o.created_at).getTime()) >= EXPAND_DELAY_MS
+      return false
+    })
     setQueue(relevant)
   }
 
@@ -112,20 +170,22 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
         const cats = workerMeta.service_categories || []
         if (cats.length > 0 && !cats.includes(order.service)) return
         if (await isBusy()) return
-        if ('vibrate' in navigator) navigator.vibrate([400, 150, 400, 150, 400])
-        setQueue(prev => {
-          if (prev.find(o => o.id === order.id)) return prev
-          return [...prev, order]
-        })
+        enqueueWithRadius(order)
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, payload => {
         const updated = payload.new as Order
         if (updated.worker_id && updated.worker_id !== workerId) {
+          const timer = pendingTimers.current.get(updated.id)
+          if (timer) { clearTimeout(timer); pendingTimers.current.delete(updated.id) }
           setQueue(prev => prev.filter(o => o.id !== updated.id))
         }
       })
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    return () => {
+      supabase.removeChannel(ch)
+      pendingTimers.current.forEach(t => clearTimeout(t))
+      pendingTimers.current.clear()
+    }
   }, [workerId, workerMeta])
 
   const current = queue[0] ?? null
