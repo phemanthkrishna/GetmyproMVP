@@ -23,17 +23,31 @@ DO $$ BEGIN
 END $$;
 
 -- ── 2. Add tables to the Supabase realtime publication ───────
--- Supabase uses a Postgres publication called `supabase_realtime`.
--- Tables must be explicitly added to receive change events.
--- Using IF NOT EXISTS equivalent via DO block to avoid errors on re-run.
-
-ALTER PUBLICATION supabase_realtime ADD TABLE orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE workers;
-ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE stores;
-
+-- Guard against "already member" error on re-run.
 DO $$ BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'service_alerts') THEN
-    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE service_alerts';
-  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'orders'
+  ) THEN ALTER PUBLICATION supabase_realtime ADD TABLE orders; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'workers'
+  ) THEN ALTER PUBLICATION supabase_realtime ADD TABLE workers; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'profiles'
+  ) THEN ALTER PUBLICATION supabase_realtime ADD TABLE profiles; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'stores'
+  ) THEN ALTER PUBLICATION supabase_realtime ADD TABLE stores; END IF;
+
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'service_alerts')
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'service_alerts'
+  ) THEN ALTER PUBLICATION supabase_realtime ADD TABLE service_alerts; END IF;
 END $$;
