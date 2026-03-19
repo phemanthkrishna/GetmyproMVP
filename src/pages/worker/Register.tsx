@@ -141,14 +141,16 @@ export default function WorkerRegister() {
         upi_id: upiId.trim() || null,
         verified: false,
         is_active: true,
+        is_online: false,
       }, { onConflict: 'id' })
       if (workerError) throw workerError
 
       signIn({ id: profile.id, name, phone, role: 'worker' })
       toast.success('Registration submitted! Admin will verify you shortly.')
       navigate('/worker')
-    } catch {
-      toast.error('Registration failed, please try again')
+    } catch (err: any) {
+      console.error('Worker registration failed:', err)
+      toast.error(err?.message || 'Registration failed, please try again')
     }
     setLoading(false)
   }

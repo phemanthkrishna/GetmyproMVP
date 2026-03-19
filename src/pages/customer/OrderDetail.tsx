@@ -40,8 +40,9 @@ export default function CustomerOrderDetail() {
       if (error) throw error
       toast.success('Payment submitted! Admin will confirm shortly.')
       setPaymentSubmitted(true)
-    } catch {
-      toast.error('Failed to submit, please try again')
+    } catch (err: any) {
+      console.error('Final pay submit failed:', err)
+      toast.error(err?.message || 'Failed to submit, please try again')
     }
     setSaving(false)
   }
@@ -60,8 +61,9 @@ export default function CustomerOrderDetail() {
       if (error) throw error
       toast.success('Order cancelled.')
       refetch()
-    } catch {
-      toast.error('Failed to cancel order, please try again')
+    } catch (err: any) {
+      console.error('Cancel order failed:', err)
+      toast.error(err?.message || 'Failed to cancel order, please try again')
     }
     setSaving(false)
   }
@@ -69,7 +71,8 @@ export default function CustomerOrderDetail() {
   async function submitRating(val: number) {
     if (!order) return
     setRating(val)
-    await supabase.from('orders').update({ rating: val }).eq('id', order.id)
+    const { error } = await supabase.from('orders').update({ rating: val }).eq('id', order.id)
+    if (error) { console.error('Rating submit failed:', error); return }
     toast.success('Thank you for your rating! ⭐')
     refetch()
   }

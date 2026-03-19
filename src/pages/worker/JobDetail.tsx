@@ -106,9 +106,9 @@ export default function JobDetail() {
   // Start inspection
   async function startInspection() {
     setSaving(true)
-    await supabase.from('orders').update({ status: 'inspecting' }).eq('id', order!.id)
-    toast.success('Inspection started')
-    refetch()
+    const { error } = await supabase.from('orders').update({ status: 'inspecting' }).eq('id', order!.id)
+    if (error) { console.error('Start inspection failed:', error); toast.error(error.message) }
+    else { toast.success('Inspection started'); refetch() }
     setSaving(false)
   }
 
@@ -200,7 +200,8 @@ export default function JobDetail() {
     const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true })
     if (error) { toast.error('Upload failed, please try again'); setSaving(false); return }
     const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path)
-    await supabase.from('orders').update({ job_photo_url: publicUrl }).eq('id', order!.id)
+    const { error: updateError } = await supabase.from('orders').update({ job_photo_url: publicUrl }).eq('id', order!.id)
+    if (updateError) { console.error('Photo URL save failed:', updateError); toast.error(updateError.message); setSaving(false); return }
     toast.success('Photo uploaded ✓')
     refetch()
     setSaving(false)
@@ -210,9 +211,9 @@ export default function JobDetail() {
   async function markDone() {
     if (!order!.job_photo_url && !photoFile) return toast.error('Upload a completion photo first')
     setSaving(true)
-    await supabase.from('orders').update({ status: 'done_uploaded' }).eq('id', order!.id)
-    toast.success('Done! Ask customer for their OTP')
-    refetch()
+    const { error } = await supabase.from('orders').update({ status: 'done_uploaded' }).eq('id', order!.id)
+    if (error) { console.error('Mark done failed:', error); toast.error(error.message) }
+    else { toast.success('Done! Ask customer for their OTP'); refetch() }
     setSaving(false)
   }
 
