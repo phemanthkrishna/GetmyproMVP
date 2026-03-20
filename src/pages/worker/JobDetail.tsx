@@ -144,11 +144,32 @@ export default function JobDetail() {
       update.total_quote = labourAmt
     }
     const { error } = await supabase.from('orders').update(update).eq('id', order!.id)
-    if (error) toast.error(error.message)
-    else {
+    if (error) { toast.error(error.message); setSaving(false); return }
+
+    // Auto-assign nearest active store when materials are needed
+    if (needsMaterials && validMats.length > 0) {
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('id, name, contact')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+      if (storeData) {
+        const arr = new Uint32Array(1)
+        crypto.getRandomValues(arr)
+        const otp = String(100000 + (arr[0] % 900000))
+        await supabase.from('orders').update({
+          mat_store_id: storeData.id,
+          mat_store_name: storeData.name,
+          mat_store_contact: storeData.contact,
+          mat_collection_otp: otp,
+        }).eq('id', order!.id)
+      }
+      toast.success('Quote sent — store notified! 📋')
+    } else {
       toast.success(needsMaterials ? 'Quote sent to admin! 📋' : 'Quote sent to customer! 📋')
-      refetch()
     }
+    refetch()
     setSaving(false)
   }
 

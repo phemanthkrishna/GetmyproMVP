@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #09090B;
+  --surface: #131316;
+  --border: #27272A;
+  --text: #FAFAFA;
+  --muted: #A1A1AA;
+  --brand: #1D6FD9;
+  --accent: #E85520;
+}
+
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 { font-family: 'Nunito', sans-serif; line-height: 1.2; }
+
+#root { display: flex; justify-content: center; background: var(--bg); }
+
+.app-shell {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.page-content { padding-bottom: 80px; min-height: 100dvh; }
+
+.gradient-brand { background: linear-gradient(135deg, #1D6FD9 0%, #E85520 100%); }
+.gradient-text {
+  background: linear-gradient(135deg, #1D6FD9 0%, #E85520 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+
+.otp-digit {
+  width: 52px;
+  height: 60px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  outline: none;
+}
+.otp-digit:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(29,111,217,0.15); }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease-out; }
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(232,85,32,0.4); }
+  50% { border-color: rgba(232,85,32,1); }
+}
+.pulse-border { animation: pulse-border 1.5s ease-in-out infinite; }
