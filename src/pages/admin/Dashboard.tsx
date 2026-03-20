@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -29,7 +28,6 @@ const FILTER_MAP: Record<string, (o: Order) => boolean> = {
 
 export default function AdminDashboard() {
   const { signOut } = useAuth()
-  const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [filter, setFilter] = useState('All')
   const [loading, setLoading] = useState(true)
@@ -100,10 +98,9 @@ export default function AdminDashboard() {
 
       <div className="flex flex-col gap-3">
         {filtered.map(o => (
-          <button
+          <div
             key={o.id}
-            onClick={() => navigate(`/admin/orders/${o.id}`)}
-            className="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-left btn-press w-full"
+            className="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-left w-full"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -122,7 +119,7 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-          </button>
+          </div>
         ))}
       </div>
 
