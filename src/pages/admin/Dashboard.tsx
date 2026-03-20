@@ -7,7 +7,7 @@ import { BottomNav } from '../../components/BottomNav'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { formatDate } from '../../lib/utils'
 import { ClipboardList, Users, DollarSign, Package, Store } from 'lucide-react'
-import type { Order, Worker } from '../../types'
+import type { Order } from '../../types'
 
 const NAV = [
   { to: '/admin', icon: ClipboardList, label: 'Orders' },
@@ -17,13 +17,12 @@ const NAV = [
   { to: '/admin/stores', icon: Store, label: 'Stores' },
 ]
 
-const FILTERS = ['All', 'Set Price', 'Assign Worker', 'In Progress', 'Done']
+const FILTERS = ['All', 'Assign Worker', 'In Progress', 'Done']
 
 const FILTER_MAP: Record<string, (o: Order) => boolean> = {
   'All': () => true,
-  'Set Price': o => o.status === 'quote_sent' && o.mat_cost_admin == null,
   'Assign Worker': o => o.status === 'booked' && !o.worker_id,
-  'In Progress': o => ['in_progress', 'worker_visiting'].includes(o.status),
+  'In Progress': o => ['in_progress', 'worker_visiting', 'material_collected'].includes(o.status),
   'Done': o => ['done_uploaded', 'completed'].includes(o.status),
 }
 
@@ -56,7 +55,7 @@ export default function AdminDashboard() {
   }
 
   const filtered = orders.filter(FILTER_MAP[filter] || (() => true))
-  const needPricing = orders.filter(o => o.status === 'quote_sent' && o.mat_cost_admin == null).length
+  const needWorker = orders.filter(o => o.status === 'booked' && !o.worker_id).length
   const active = orders.filter(o => !['completed', 'cancelled'].includes(o.status)).length
   const completed = orders.filter(o => o.status === 'completed').length
 
@@ -74,7 +73,7 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
-        <StatCard label="Need Pricing" value={needPricing} urgent={needPricing > 0} />
+        <StatCard label="Need Worker" value={needWorker} urgent={needWorker > 0} />
         <StatCard label="Active" value={active} />
         <StatCard label="Completed" value={completed} />
       </div>
@@ -117,9 +116,6 @@ export default function AdminDashboard() {
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
                 <StatusBadge status={o.status} />
-                {o.status === 'quote_sent' && o.mat_cost_admin == null && (
-                  <span className="text-xs text-red-400 font-bold">SET PRICE</span>
-                )}
               </div>
             </div>
           </button>

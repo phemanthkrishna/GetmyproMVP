@@ -8,8 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { StatusBadge } from '../../components/StatusBadge'
 import { formatDate, formatCurrency } from '../../lib/utils'
 import { ArrowLeft, Phone } from 'lucide-react'
-import type { Worker, QuoteMaterial } from '../../types'
-
+import type { Worker } from '../../types'
 
 interface StoreRow { id: string; name: string; store_type: string; contact: string }
 
@@ -286,7 +285,7 @@ export default function AdminOrderDetail() {
         </Card>
       )}
 
-      {/* Material collection — store auto-assigned by worker, admin can override */}
+      {/* Material collection — fallback store assignment only */}
       {order.status === 'in_progress' && Array.isArray(order.quote_materials) && order.quote_materials.length > 0 && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">🏪 Material Collection</p>
@@ -304,21 +303,17 @@ export default function AdminOrderDetail() {
                 ))}
               </select>
               <Button variant="accent" loading={saving} onClick={assignStore}>
-                Assign Store & Generate OTP →
+                Assign Store →
               </Button>
             </>
           ) : (
             <div className="flex flex-col gap-2 text-sm">
               <Row label="Store" value={order.mat_store_name || '—'} />
               <Row label="Contact" value={order.mat_store_contact || '—'} />
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mt-1">
-                <p className="text-amber-400 text-xs font-semibold mb-1">Collection OTP (share with store)</p>
-                <p className="text-white font-black text-3xl tracking-widest text-center">{order.mat_collection_otp}</p>
-              </div>
               {order.mat_collected ? (
-                <p className="text-green-400 text-sm font-semibold text-center">✓ Worker collected materials</p>
+                <p className="text-green-400 text-sm font-semibold mt-1">✓ Worker collected materials</p>
               ) : (
-                <p className="text-amber-400 text-sm text-center">⏳ Waiting for worker to collect</p>
+                <p className="text-amber-400 text-sm mt-1">⏳ Waiting for worker to collect</p>
               )}
             </div>
           )}
