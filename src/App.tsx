@@ -23,6 +23,13 @@ import WorkerProfile from './pages/worker/Profile'
 import WorkerHistory from './pages/worker/WorkHistory'
 import JobDetail from './pages/worker/JobDetail'
 
+// Store
+import StoreLogin from './pages/store/Login'
+import StoreDashboard from './pages/store/Dashboard'
+import StoreOrderDetail from './pages/store/OrderDetail'
+import StoreEarnings from './pages/store/Earnings'
+import StoreProfile from './pages/store/Profile'
+
 // Admin
 import AdminLogin from './pages/admin/Login'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -73,6 +80,13 @@ export default function App() {
       <Route path="/worker/history" element={<RequireAuth role="worker"><WorkerHistory /></RequireAuth>} />
       <Route path="/worker/profile" element={<RequireAuth role="worker"><WorkerProfile /></RequireAuth>} />
       <Route path="/worker/job/:orderId" element={<RequireAuth role="worker"><JobDetail /></RequireAuth>} />
+
+      {/* Store */}
+      <Route path="/store/login" element={<StoreLogin />} />
+      <Route path="/store" element={<StoreDashboard />} />
+      <Route path="/store/order/:id" element={<StoreOrderDetail />} />
+      <Route path="/store/earnings" element={<StoreEarnings />} />
+      <Route path="/store/profile" element={<StoreProfile />} />
 
       {/* Admin */}
       <Route path="/admin/login" element={<AdminLogin />} />

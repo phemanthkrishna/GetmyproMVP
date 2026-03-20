@@ -96,7 +96,7 @@ export default function Landing() {
 
           {/* Store Partner CTA */}
           <button
-            onClick={() => window.open('https://getmypro-store.vercel.app', '_blank')}
+            onClick={() => navigate('/store/login')}
             className="w-full bg-[var(--surface)] border border-[var(--border)] hover:border-blue-500/40 text-[var(--text)] font-bold rounded-2xl py-4 px-5 flex items-center justify-between btn-press transition-all"
           >
             <div className="flex items-center gap-3">
