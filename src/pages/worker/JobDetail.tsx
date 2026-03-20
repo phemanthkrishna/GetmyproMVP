@@ -43,12 +43,9 @@ export default function JobDetail() {
   const [arrivalLockedUntil, setArrivalLockedUntil] = useState<number | null>(null)
   const [compAttempts, setCompAttempts] = useState(0)
   const [compLockedUntil, setCompLockedUntil] = useState<number | null>(null)
-  const [matAttempts, setMatAttempts] = useState(0)
-  const [matLockedUntil, setMatLockedUntil] = useState<number | null>(null)
 
   const [arrivalOtp, setArrivalOtp] = useState('')
   const [compOtp, setCompOtp] = useState('')
-  const [matCollectionOtp, setMatCollectionOtp] = useState('')
   const [labour, setLabour] = useState('')
   const [needsMaterials, setNeedsMaterials] = useState(false)
   const [materials, setMaterials] = useState<QuoteMaterial[]>([{ name: '', qty: 1, unit: 'nos' }])
@@ -186,27 +183,6 @@ export default function JobDetail() {
   }
   function updateMaterial(i: number, field: keyof QuoteMaterial, val: string | number) {
     setMaterials(m => m.map((mat, idx) => idx === i ? { ...mat, [field]: val } : mat))
-  }
-
-  async function confirmMatCollection() {
-    if (matLockedUntil && Date.now() < matLockedUntil) {
-      const secs = Math.ceil((matLockedUntil - Date.now()) / 1000)
-      toast.error(`Too many wrong attempts. Try again in ${secs}s`)
-      return
-    }
-    if (matCollectionOtp !== order!.mat_collection_otp) {
-      const next = matAttempts + 1
-      setMatAttempts(next)
-      if (next >= 5) { setMatLockedUntil(Date.now() + 60_000); setMatAttempts(0) }
-      toast.error('Wrong OTP — ask the store for their collection code')
-      return
-    }
-    setMatAttempts(0)
-    setSaving(true)
-    const { error } = await supabase.from('orders').update({ mat_collected: true }).eq('id', order!.id)
-    if (error) toast.error('Failed to confirm collection, please try again')
-    else { toast.success('Materials collected ✓'); refetch() }
-    setSaving(false)
   }
 
   // Upload photo
@@ -453,11 +429,12 @@ export default function JobDetail() {
                   <a href={`tel:${order.mat_store_contact}`} className="text-blue-400">{order.mat_store_contact}</a>
                 </div>
               </div>
-              <p className="text-slate-400 text-sm mb-3">Enter the OTP given by the store to confirm collection:</p>
-              <OtpInput value={matCollectionOtp} onChange={setMatCollectionOtp} length={6} />
-              <Button size="lg" variant="accent" loading={saving} onClick={confirmMatCollection} className="mt-4">
-                Confirm Collection ✓
-              </Button>
+              <p className="text-slate-400 text-sm mb-2">Show this OTP to the store — they'll verify it:</p>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-center">
+                <p className="text-amber-400 text-xs font-semibold mb-1">Your Collection OTP</p>
+                <p className="text-white font-black text-4xl tracking-[0.3em] font-mono">{order.mat_collection_otp}</p>
+              </div>
+              <p className="text-slate-500 text-xs text-center mt-3">Waiting for store to confirm collection…</p>
             </>
           )}
         </Card>

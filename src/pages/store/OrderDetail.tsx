@@ -15,7 +15,6 @@ export default function StoreOrderDetail() {
   const [saving, setSaving] = useState(false)
 
   const [prices, setPrices] = useState<Record<number, string>>({})
-  const [showOtp, setShowOtp] = useState(false)
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
   const [otpShake, setOtpShake] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -219,12 +218,6 @@ export default function StoreOrderDetail() {
               </div>
             ))}
 
-            <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-4 mt-4 mb-4 text-center">
-              <p className="text-orange-300 font-semibold text-sm mb-1">Worker Collection OTP</p>
-              <p className="text-slate-50 text-4xl font-black tracking-[0.3em] font-mono">{order.mat_collection_otp || '——————'}</p>
-              <p className="text-slate-500 text-xs mt-2">Ask worker for this OTP when they arrive to collect</p>
-            </div>
-
             {order.store_earnings != null && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4 text-center">
                 <p className="text-slate-400 text-sm">You will receive</p>
@@ -233,40 +226,31 @@ export default function StoreOrderDetail() {
               </div>
             )}
 
-            {!showOtp ? (
-              <button
-                onClick={() => { setShowOtp(true); setTimeout(() => otpRefs.current[0]?.focus(), 100) }}
-                className="w-full bg-green-500 text-white font-bold text-base py-4 rounded-2xl"
-              >
-                Confirm Worker Collected
-              </button>
-            ) : (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <p className="text-slate-50 font-bold text-lg mb-1 text-center">Ask Worker for OTP</p>
-                <p className="text-slate-500 text-sm text-center mb-5">Worker sees their OTP in the GetMyPro app</p>
-                <div className={`flex gap-2 justify-center mb-5 ${otpShake ? 'shake' : ''}`} onPaste={handleOtpPaste}>
-                  {otpDigits.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={el => { otpRefs.current[i] = el }}
-                      type="tel"
-                      maxLength={1}
-                      value={digit}
-                      onChange={e => handleOtpChange(i, e.target.value)}
-                      onKeyDown={e => handleOtpKeyDown(i, e)}
-                      className="otp-digit"
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={confirmCollection}
-                  disabled={otpDigits.some(d => !d) || saving}
-                  className="w-full bg-green-500 text-white font-bold py-3.5 rounded-xl disabled:opacity-40"
-                >
-                  {saving ? 'Confirming...' : 'Confirm Collection'}
-                </button>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <p className="text-slate-50 font-bold text-lg mb-1 text-center">Worker Verification OTP</p>
+              <p className="text-slate-500 text-sm text-center mb-5">Worker will show you their OTP — enter it here to confirm collection</p>
+              <div className={`flex gap-2 justify-center mb-5 ${otpShake ? 'shake' : ''}`} onPaste={handleOtpPaste}>
+                {otpDigits.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={el => { otpRefs.current[i] = el }}
+                    type="tel"
+                    maxLength={1}
+                    value={digit}
+                    onChange={e => handleOtpChange(i, e.target.value)}
+                    onKeyDown={e => handleOtpKeyDown(i, e)}
+                    className="otp-digit"
+                  />
+                ))}
               </div>
-            )}
+              <button
+                onClick={confirmCollection}
+                disabled={otpDigits.some(d => !d) || saving}
+                className="w-full bg-green-500 text-white font-bold py-3.5 rounded-xl disabled:opacity-40"
+              >
+                {saving ? 'Confirming...' : 'Confirm Collection'}
+              </button>
+            </div>
           </>
         )}
 
