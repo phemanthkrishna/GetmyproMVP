@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEffect } from 'react'
-import { Wrench, User, ChevronRight } from 'lucide-react'
+import { Wrench, User, ChevronRight, Store } from 'lucide-react'
 
 export default function Landing() {
   const { session } = useAuth()
@@ -89,6 +89,23 @@ export default function Landing() {
               <div className="text-left">
                 <p className="text-[11px] font-semibold text-orange-400 uppercase tracking-widest">Pro / Worker</p>
                 <p className="text-lg font-black font-heading leading-tight">I want to find jobs</p>
+              </div>
+            </div>
+            <ChevronRight size={20} className="text-[var(--muted)]" />
+          </button>
+
+          {/* Store Partner CTA */}
+          <button
+            onClick={() => window.open('https://getmypro-store.vercel.app', '_blank')}
+            className="w-full bg-[var(--surface)] border border-[var(--border)] hover:border-blue-500/40 text-[var(--text)] font-bold rounded-2xl py-4 px-5 flex items-center justify-between btn-press transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
+                <Store size={18} className="text-blue-400" />
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-semibold text-blue-400 uppercase tracking-widest">Store Partner</p>
+                <p className="text-lg font-black font-heading leading-tight">I supply materials</p>
               </div>
             </div>
             <ChevronRight size={20} className="text-[var(--muted)]" />
