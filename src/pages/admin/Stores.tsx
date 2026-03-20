@@ -44,7 +44,7 @@ interface StoreRow {
 }
 
 const EMPTY_FORM = {
-  name: '', store_type: '', contact: '', phone: '', commission_pct: 15,
+  name: '', store_types: [] as string[], contact: '', phone: '', commission_pct: 15,
   address: '', lat: null as number | null, lng: null as number | null,
 }
 
@@ -100,16 +100,25 @@ export default function AdminStores() {
     )
   }
 
+  function toggleType(t: string) {
+    setForm(f => ({
+      ...f,
+      store_types: f.store_types.includes(t)
+        ? f.store_types.filter(x => x !== t)
+        : [...f.store_types, t],
+    }))
+  }
+
   async function addStore() {
     if (!form.name.trim()) return toast.error('Enter store name')
-    if (!form.store_type) return toast.error('Select a store type')
+    if (form.store_types.length === 0) return toast.error('Select at least one store type')
     if (!form.contact.trim()) return toast.error('Enter contact number')
     if (form.commission_pct <= 0 || form.commission_pct > 100) return toast.error('Commission % must be between 1 and 100')
     setSaving(true)
     const newStoreId = generateStoreId()
     const { error } = await supabase.from('stores').insert({
       name: form.name.trim(),
-      store_type: form.store_type,
+      store_type: form.store_types.join(', '),
       contact: form.contact.trim(),
       phone: form.phone.trim() || form.contact.trim(),
       commission_pct: form.commission_pct,
@@ -189,19 +198,33 @@ export default function AdminStores() {
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             />
 
-            {/* Store Type dropdown */}
+            {/* Store Type multi-select chips */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5">Store Type</label>
-              <select
-                value={form.store_type}
-                onChange={e => setForm(f => ({ ...f, store_type: e.target.value }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-50 outline-none focus:border-blue-500 text-sm"
-              >
-                <option value="">Select store type…</option>
-                {STORE_TYPES.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <label className="block text-xs font-semibold text-slate-400 mb-2">
+                Store Type <span className="text-slate-600">(select all that apply)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {STORE_TYPES.map(t => {
+                  const selected = form.store_types.includes(t)
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggleType(t)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        selected
+                          ? 'bg-orange-500 border-orange-500 text-white'
+                          : 'bg-slate-900 border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {selected ? '✓ ' : ''}{t}
+                    </button>
+                  )
+                })}
+              </div>
+              {form.store_types.length > 0 && (
+                <p className="text-orange-400 text-xs mt-2">{form.store_types.length} type{form.store_types.length > 1 ? 's' : ''} selected</p>
+              )}
             </div>
 
             <Input
