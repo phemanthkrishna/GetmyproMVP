@@ -272,25 +272,31 @@ export default function AdminOrderDetail() {
           <div className="flex flex-col gap-1 text-sm mb-3">
             <Row label="Labour" value={formatCurrency(order.quote_labour || 0)} />
             {(Array.isArray(order.quote_materials) ? order.quote_materials as QuoteMaterial[] : []).map((m, i) => (
-              <Row key={i} label={m.name} value={`${m.qty} ${m.unit}`} />
+              <Row key={i} label={m.name} value={m.price != null ? `${m.qty} ${m.unit} · ₹${m.price}` : `${m.qty} ${m.unit}`} />
             ))}
           </div>
           {order.mat_cost_admin == null ? (
-            <>
-              <p className="text-blue-400 text-sm mb-3">
-                📞 Call customer to confirm scope and agree on material prices
-              </p>
-              <Input
-                label="Set Material Cost (₹)"
-                type="number"
-                placeholder="e.g. 300"
-                value={matCost}
-                onChange={e => setMatCost(e.target.value)}
-              />
-              <Button variant="accent" loading={saving} onClick={confirmMatCost} className="mt-3">
-                Confirm & Send Quote to Customer →
-              </Button>
-            </>
+            order.mat_store_id ? (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-blue-400 text-sm">
+                🏪 Store partner is pricing materials — quote will auto-send to customer once done
+              </div>
+            ) : (
+              <>
+                <p className="text-blue-400 text-sm mb-3">
+                  📞 No store assigned — enter material cost manually to send quote
+                </p>
+                <Input
+                  label="Set Material Cost (₹)"
+                  type="number"
+                  placeholder="e.g. 300"
+                  value={matCost}
+                  onChange={e => setMatCost(e.target.value)}
+                />
+                <Button variant="accent" loading={saving} onClick={confirmMatCost} className="mt-3">
+                  Confirm & Send Quote to Customer →
+                </Button>
+              </>
+            )
           ) : (
             <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-green-400 text-sm">
               ✓ Material cost: {formatCurrency(order.mat_cost_admin)} · Total quote: {formatCurrency(order.total_quote || 0)}
@@ -313,13 +319,13 @@ export default function AdminOrderDetail() {
         </Card>
       )}
 
-      {/* Material collection — assign store after payment confirmed */}
+      {/* Material collection — store auto-assigned by worker, admin can override */}
       {order.status === 'in_progress' && Array.isArray(order.quote_materials) && order.quote_materials.length > 0 && (
         <Card className="mb-4">
           <p className="font-bold text-slate-50 mb-3">🏪 Material Collection</p>
           {!order.mat_store_id ? (
             <>
-              <p className="text-slate-400 text-sm mb-3">Select a partner store for the worker to collect materials from.</p>
+              <p className="text-amber-400 text-sm mb-3">⚠️ No store assigned — assign one manually.</p>
               <select
                 value={selectedStore}
                 onChange={e => setSelectedStore(e.target.value)}

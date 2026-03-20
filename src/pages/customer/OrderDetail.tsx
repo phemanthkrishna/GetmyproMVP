@@ -35,8 +35,8 @@ const STEP_SUMMARY: Record<string, { icon: string; title: string; desc: string; 
     color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)',
   },
   quote_sent_pending: {
-    icon: '⏳', title: 'Quote being reviewed',
-    desc: 'Admin is confirming material prices — quote will appear shortly',
+    icon: '⏳', title: 'Quote being prepared',
+    desc: 'Our store partner is pricing the materials — your quote will appear here shortly',
     color: '#3B82F6', bg: 'rgba(59,130,246,0.08)',
   },
   quote_sent_ready: {
