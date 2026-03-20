@@ -32,6 +32,7 @@ import StoreProfile from './pages/store/Profile'
 
 // Admin
 import AdminLogin from './pages/admin/Login'
+import AdminOrderDetail from './pages/admin/OrderDetail'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminWorkers from './pages/admin/Workers'
 import AdminPayments from './pages/admin/Payments'
@@ -90,6 +91,7 @@ export default function App() {
       {/* Admin */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboard /></RequireAuth>} />
+      <Route path="/admin/orders/:orderId" element={<RequireAuth role="admin"><AdminOrderDetail /></RequireAuth>} />
       <Route path="/admin/workers" element={<RequireAuth role="admin"><AdminWorkers /></RequireAuth>} />
       <Route path="/admin/payments" element={<RequireAuth role="admin"><AdminPayments /></RequireAuth>} />
       <Route path="/admin/materials" element={<RequireAuth role="admin"><AdminMaterials /></RequireAuth>} />
