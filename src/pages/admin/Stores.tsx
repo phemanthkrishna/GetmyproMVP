@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { BottomNav } from '../../components/BottomNav'
-import { ClipboardList, Users, DollarSign, Package, Store, Trash2, Plus, Copy, ToggleLeft, ToggleRight } from 'lucide-react'
+import { ClipboardList, Users, DollarSign, Package, Store, Trash2, Plus, Copy, ToggleLeft, ToggleRight, MapPin, Loader2 } from 'lucide-react'
 
 const NAV = [
   { to: '/admin', icon: ClipboardList, label: 'Orders' },
@@ -13,6 +13,19 @@ const NAV = [
   { to: '/admin/payments', icon: DollarSign, label: 'Payments' },
   { to: '/admin/materials', icon: Package, label: 'Materials' },
   { to: '/admin/stores', icon: Store, label: 'Stores' },
+]
+
+const STORE_TYPES = [
+  'Hardware',
+  'Electrical',
+  'Plumbing',
+  'Tiles & Bathroom',
+  'Paint & Coatings',
+  'Carpentry & Wood',
+  'AC & Cooling',
+  'Cleaning Supplies',
+  'General (All Materials)',
+  'Other',
 ]
 
 interface StoreRow {
@@ -24,10 +37,16 @@ interface StoreRow {
   commission_pct: number
   store_id: string
   is_active: boolean
+  address?: string
+  lat?: number
+  lng?: number
   created_at: string
 }
 
-const EMPTY_FORM = { name: '', store_type: '', contact: '', phone: '', commission_pct: 15 }
+const EMPTY_FORM = {
+  name: '', store_type: '', contact: '', phone: '', commission_pct: 15,
+  address: '', lat: null as number | null, lng: null as number | null,
+}
 
 function generateStoreId() {
   const num = Math.floor(100000 + Math.random() * 900000)
@@ -39,6 +58,7 @@ export default function AdminStores() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [createdStoreId, setCreatedStoreId] = useState<string | null>(null)
@@ -51,21 +71,53 @@ export default function AdminStores() {
     setStores((data as StoreRow[]) || [])
   }
 
+  async function pickLocation() {
+    if (!navigator.geolocation) return toast.error('Geolocation not supported on this device')
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { 'Accept-Language': 'en' } }
+          )
+          const data = await res.json()
+          const address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+          setForm(f => ({ ...f, lat, lng, address }))
+          toast.success('Location captured ✓')
+        } catch {
+          setForm(f => ({ ...f, lat, lng, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }))
+          toast.success('Coordinates saved (reverse geocode failed)')
+        }
+        setLocating(false)
+      },
+      (err) => {
+        toast.error('Could not get location: ' + err.message)
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   async function addStore() {
     if (!form.name.trim()) return toast.error('Enter store name')
-    if (!form.store_type.trim()) return toast.error('Enter store type')
-    if (!form.contact.trim()) return toast.error('Enter contact')
+    if (!form.store_type) return toast.error('Select a store type')
+    if (!form.contact.trim()) return toast.error('Enter contact number')
     if (form.commission_pct <= 0 || form.commission_pct > 100) return toast.error('Commission % must be between 1 and 100')
     setSaving(true)
     const newStoreId = generateStoreId()
     const { error } = await supabase.from('stores').insert({
       name: form.name.trim(),
-      store_type: form.store_type.trim(),
+      store_type: form.store_type,
       contact: form.contact.trim(),
       phone: form.phone.trim() || form.contact.trim(),
       commission_pct: form.commission_pct,
       store_id: newStoreId,
       is_active: true,
+      address: form.address.trim() || null,
+      lat: form.lat,
+      lng: form.lng,
     })
     if (error) { toast.error(error.message); setSaving(false); return }
     setCreatedStoreId(newStoreId)
@@ -136,12 +188,22 @@ export default function AdminStores() {
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             />
-            <Input
-              label="Store Type"
-              placeholder="e.g. Hardware, Electrical, Plumbing"
-              value={form.store_type}
-              onChange={e => setForm(f => ({ ...f, store_type: e.target.value }))}
-            />
+
+            {/* Store Type dropdown */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">Store Type</label>
+              <select
+                value={form.store_type}
+                onChange={e => setForm(f => ({ ...f, store_type: e.target.value }))}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-50 outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="">Select store type…</option>
+                {STORE_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
             <Input
               label="Contact (Phone)"
               placeholder="10-digit number"
@@ -163,7 +225,38 @@ export default function AdminStores() {
               value={String(form.commission_pct)}
               onChange={e => setForm(f => ({ ...f, commission_pct: Number(e.target.value) }))}
             />
-            <div className="flex gap-2">
+
+            {/* Address with map picker */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">Store Address</label>
+              <div className="flex gap-2">
+                <input
+                  placeholder="Enter address or use location"
+                  value={form.address}
+                  onChange={e => setForm(f => ({ ...f, address: e.target.value, lat: null, lng: null }))}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-50 text-sm outline-none focus:border-blue-500 placeholder-slate-600"
+                />
+                <button
+                  type="button"
+                  onClick={pickLocation}
+                  disabled={locating}
+                  title="Use current location"
+                  className="shrink-0 w-12 h-12 flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-blue-400 disabled:opacity-50"
+                >
+                  {locating
+                    ? <Loader2 size={18} className="animate-spin" />
+                    : <MapPin size={18} />
+                  }
+                </button>
+              </div>
+              {form.lat && form.lng && (
+                <p className="text-green-400 text-xs mt-1.5 flex items-center gap-1">
+                  <MapPin size={10} /> {form.lat.toFixed(5)}, {form.lng.toFixed(5)} — location saved
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-1">
               <Button variant="accent" loading={saving} onClick={addStore} className="flex-1">
                 Add Store ✓
               </Button>
@@ -185,7 +278,7 @@ export default function AdminStores() {
         {stores.map(s => (
           <Card key={s.id} className={s.is_active ? '' : 'opacity-60'}>
             <div className="flex items-start justify-between">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <Store size={14} className="text-orange-400" />
                   <p className="font-bold text-slate-50">{s.name}</p>
@@ -193,6 +286,11 @@ export default function AdminStores() {
                 </div>
                 <p className="text-slate-500 text-xs">{s.store_type}</p>
                 <p className="text-slate-500 text-xs mt-0.5">{s.contact}</p>
+                {s.address && (
+                  <p className="text-slate-600 text-xs mt-0.5 truncate flex items-center gap-1">
+                    <MapPin size={9} /> {s.address}
+                  </p>
+                )}
                 {s.store_id && (
                   <button
                     onClick={() => copyStoreId(s.store_id)}
