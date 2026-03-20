@@ -46,7 +46,12 @@ const STEP_SUMMARY: Record<string, { icon: string; title: string; desc: string; 
   },
   in_progress: {
     icon: '🔧', title: 'Work in progress',
-    desc: 'Your Pro is working on the job right now',
+    desc: 'Your Pro is collecting materials and will start work shortly',
+    color: '#F97316', bg: 'rgba(249,115,22,0.08)',
+  },
+  material_collected: {
+    icon: '🏪', title: 'Materials collected',
+    desc: 'Your Pro has collected all materials and is working on the job now',
     color: '#F97316', bg: 'rgba(249,115,22,0.08)',
   },
   done_uploaded: {

@@ -310,13 +310,14 @@ export default function JobDetail() {
         <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
           <p className="text-amber-400 font-bold mb-1">⏳ Awaiting Admin Approval</p>
           <p className="text-slate-400 text-sm">Your labour charge of {formatCurrency(order.labour_pending_amount || 0)} exceeds ₹1,000 and requires admin approval. You'll be notified once approved.</p>
+
         </Card>
       )}
 
       {/* inspecting: show quote form */}
       {isMyJob && order.status === 'inspecting' && !order.labour_approval_pending && (
         <Card className="mb-4">
-          <p className="font-bold text-slate-50 mb-1">Send Quote to Admin</p>
+          <p className="font-bold text-slate-50 mb-1">Send Quote</p>
           <div className="flex flex-col gap-4">
             <Input
               label="Labour Charges (₹)"
@@ -336,7 +337,7 @@ export default function JobDetail() {
             <div className="flex items-center justify-between bg-slate-900 rounded-xl px-4 py-3">
               <div>
                 <p className="text-slate-50 text-sm font-semibold">Materials needed?</p>
-                <p className="text-slate-500 text-xs">{needsMaterials ? 'Admin will review & price materials' : 'Quote goes directly to customer'}</p>
+                <p className="text-slate-500 text-xs">{needsMaterials ? 'Store partner will price materials' : 'Quote goes directly to customer'}</p>
               </div>
               <button
                 type="button"
@@ -382,7 +383,7 @@ export default function JobDetail() {
               </button>
             </div>
             <Button size="lg" variant="accent" loading={saving} onClick={sendQuote}>
-              {needsMaterials ? 'Send Quote to Admin →' : 'Send Quote to Customer →'}
+              {needsMaterials ? 'Send Quote →' : 'Send Quote to Customer →'}
             </Button>
           </div>
         </Card>
@@ -400,11 +401,11 @@ export default function JobDetail() {
           </div>
           {order.mat_cost_admin == null ? (
             <div className="mt-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-400 text-sm">
-              Admin is reviewing material prices…
+              Store partner is pricing materials — quote will be sent to customer shortly.
             </div>
           ) : (
             <div className="mt-3 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-blue-400 text-sm">
-              Admin confirmed material cost: {formatCurrency(order.mat_cost_admin)}.
+              Material cost confirmed: {formatCurrency(order.mat_cost_admin)}.
               Waiting for customer to pay.
             </div>
           )}
@@ -440,10 +441,11 @@ export default function JobDetail() {
         </Card>
       )}
 
-      {/* Step 4: Upload completion photo — only show after materials collected (if any) */}
-      {isMyJob && order.status === 'in_progress' && (
+      {/* Step 4: Upload completion photo — show when in_progress (no/collected materials) or material_collected */}
+      {isMyJob && (order.status === 'material_collected' || (
+        order.status === 'in_progress' &&
         !(Array.isArray(order.quote_materials) && order.quote_materials.length > 0 && !order.mat_collected)
-      ) && (
+      )) && (
         <Card className="mb-4">
           <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-4 text-green-400 text-sm">
             Payment received! Start work now.
