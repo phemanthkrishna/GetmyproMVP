@@ -68,8 +68,30 @@ export default function AdminOrderDetail() {
       update.total_quote = labourAmt
     }
     const { error } = await supabase.from('orders').update(update).eq('id', order!.id)
-    if (error) toast.error('Failed to approve, please try again')
-    else { toast.success('Labour approved — quote sent ✓'); refetch() }
+    if (error) { toast.error('Failed to approve, please try again'); setSaving(false); return }
+
+    // Auto-assign store if materials are present and no store assigned yet
+    if (validMats && !order!.mat_store_id) {
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('id, name, contact')
+        .neq('is_active', false)
+        .limit(1)
+        .maybeSingle()
+      if (storeData) {
+        const arr = new Uint32Array(1)
+        crypto.getRandomValues(arr)
+        const otp = String(100000 + (arr[0] % 900000))
+        await supabase.from('orders').update({
+          mat_store_id: storeData.id,
+          mat_store_name: storeData.name,
+          mat_store_contact: storeData.contact,
+          mat_collection_otp: otp,
+        }).eq('id', order!.id)
+      }
+    }
+    toast.success('Labour approved — quote sent ✓')
+    refetch()
     setSaving(false)
   }
 

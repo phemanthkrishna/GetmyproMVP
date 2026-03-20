@@ -146,26 +146,31 @@ export default function JobDetail() {
     const { error } = await supabase.from('orders').update(update).eq('id', order!.id)
     if (error) { toast.error(error.message); setSaving(false); return }
 
-    // Auto-assign nearest active store when materials are needed
+    // Auto-assign active store when materials are needed
     if (needsMaterials && validMats.length > 0) {
-      const { data: storeData } = await supabase
+      const { data: storeData, error: storeErr } = await supabase
         .from('stores')
         .select('id, name, contact')
-        .eq('is_active', true)
+        .neq('is_active', false)   // matches TRUE and NULL (safe if column missing)
         .limit(1)
         .maybeSingle()
-      if (storeData) {
+      if (storeErr) {
+        toast.error('Could not find a store — admin will assign manually')
+      } else if (storeData) {
         const arr = new Uint32Array(1)
         crypto.getRandomValues(arr)
         const otp = String(100000 + (arr[0] % 900000))
-        await supabase.from('orders').update({
+        const { error: assignErr } = await supabase.from('orders').update({
           mat_store_id: storeData.id,
           mat_store_name: storeData.name,
           mat_store_contact: storeData.contact,
           mat_collection_otp: otp,
         }).eq('id', order!.id)
+        if (assignErr) toast.error('Store assignment failed: ' + assignErr.message)
+        else toast.success('Quote sent — store notified! 📋')
+      } else {
+        toast.success('Quote sent — no store found, admin will assign 📋')
       }
-      toast.success('Quote sent — store notified! 📋')
     } else {
       toast.success(needsMaterials ? 'Quote sent to admin! 📋' : 'Quote sent to customer! 📋')
     }
