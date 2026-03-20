@@ -5,11 +5,11 @@ import { useOrder } from '../../hooks/useOrders'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
 import { StatusBadge } from '../../components/StatusBadge'
 import { formatDate, formatCurrency } from '../../lib/utils'
 import { ArrowLeft, Phone } from 'lucide-react'
 import type { Worker, QuoteMaterial } from '../../types'
+
 
 interface StoreRow { id: string; name: string; store_type: string; contact: string }
 
@@ -21,7 +21,6 @@ export default function AdminOrderDetail() {
   const [stores, setStores] = useState<StoreRow[]>([])
   const [selectedWorker, setSelectedWorker] = useState('')
   const [selectedStore, setSelectedStore] = useState('')
-  const [matCost, setMatCost] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -85,21 +84,6 @@ export default function AdminOrderDetail() {
     setSaving(false)
   }
 
-  async function confirmMatCost() {
-    if (!matCost || isNaN(Number(matCost))) return toast.error('Enter valid material cost')
-    const mat = Number(matCost)
-    if (mat < 0) return toast.error('Material cost cannot be negative')
-    if (mat > 500_000) return toast.error('Material cost cannot exceed ₹5,00,000')
-    setSaving(true)
-    const labour = order!.quote_labour || 0
-    const { error } = await supabase.from('orders').update({
-      mat_cost_admin: mat,
-      total_quote: labour + mat,
-    }).eq('id', order!.id)
-    if (error) toast.error('Failed to confirm material cost, please try again')
-    else { toast.success('Quote sent to customer ✓'); refetch() }
-    setSaving(false)
-  }
 
   async function confirmFinalPayment() {
     if (!order!.upi_final_ref?.trim()) {
@@ -265,45 +249,6 @@ export default function AdminOrderDetail() {
         </Card>
       )}
 
-      {/* Set material cost */}
-      {order.status === 'quote_sent' && (
-        <Card className="mb-4">
-          <p className="font-bold text-slate-50 mb-3">Worker's Quote</p>
-          <div className="flex flex-col gap-1 text-sm mb-3">
-            <Row label="Labour" value={formatCurrency(order.quote_labour || 0)} />
-            {(Array.isArray(order.quote_materials) ? order.quote_materials as QuoteMaterial[] : []).map((m, i) => (
-              <Row key={i} label={m.name} value={m.price != null ? `${m.qty} ${m.unit} · ₹${m.price}` : `${m.qty} ${m.unit}`} />
-            ))}
-          </div>
-          {order.mat_cost_admin == null ? (
-            order.mat_store_id ? (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-blue-400 text-sm">
-                🏪 Store partner is pricing materials — quote will auto-send to customer once done
-              </div>
-            ) : (
-              <>
-                <p className="text-blue-400 text-sm mb-3">
-                  📞 No store assigned — enter material cost manually to send quote
-                </p>
-                <Input
-                  label="Set Material Cost (₹)"
-                  type="number"
-                  placeholder="e.g. 300"
-                  value={matCost}
-                  onChange={e => setMatCost(e.target.value)}
-                />
-                <Button variant="accent" loading={saving} onClick={confirmMatCost} className="mt-3">
-                  Confirm & Send Quote to Customer →
-                </Button>
-              </>
-            )
-          ) : (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-green-400 text-sm">
-              ✓ Material cost: {formatCurrency(order.mat_cost_admin)} · Total quote: {formatCurrency(order.total_quote || 0)}
-            </div>
-          )}
-        </Card>
-      )}
 
       {/* Confirm final payment */}
       {order.status === 'quote_sent' && order.mat_cost_admin != null && !order.final_paid && (
