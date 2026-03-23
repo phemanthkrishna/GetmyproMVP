@@ -236,7 +236,7 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
     // so the customer sees the "unavailable" banner and other workers can see the job
     if (order.preferred_worker_id === workerId) {
       await supabase.from('orders')
-        .update({ preferred_worker_id: null, preferred_worker_code: null })
+        .update({ preferred_worker_id: null })
         .eq('id', order.id)
     }
     setQueue(prev => prev.filter(o => o.id !== order.id))

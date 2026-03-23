@@ -62,7 +62,7 @@ export default function JobDetail() {
   // Decline preferred job — releases it to general pool
   async function declinePreferredJob() {
     setSaving(true)
-    await supabase.from('orders').update({ preferred_worker_id: null, preferred_worker_code: null }).eq('id', order!.id)
+    await supabase.from('orders').update({ preferred_worker_id: null }).eq('id', order!.id)
     setSaving(false)
     toast.success('Declined — job is now open to all workers')
     navigate('/worker')
