@@ -183,18 +183,15 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
           setQueue(prev => prev.filter(o => o.id !== updated.id))
           return
         }
-        // Preferred worker declined → preferred_worker_id cleared → now open to all workers
+        // Preferred worker declined → preferred_worker_id cleared → reload all pending orders
         if (
           updated.status === 'booked' &&
           !updated.worker_id &&
-          !updated.preferred_worker_id
+          !updated.preferred_worker_id &&
+          workerMeta?.verified && workerMeta?.is_active && workerMeta?.is_online
         ) {
-          if (!workerMeta?.verified || !workerMeta?.is_active || !workerMeta?.is_online) return
-          if ((updated.declined_worker_ids || []).includes(workerId)) return
-          const cats = workerMeta.service_categories || []
-          if (cats.length > 0 && !cats.includes(updated.service)) return
           if (await isBusy()) return
-          enqueueWithRadius(updated)
+          loadPendingOrders(workerMeta)
         }
       })
       .subscribe()
@@ -230,14 +227,17 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
 
   // ── Actions ─────────────────────────────────────────────────────────
   async function doDecline(order: Order) {
-    const { error } = await supabase.rpc('decline_job', { p_order_id: order.id, p_worker_id: workerId })
-    if (error) console.error('decline_job failed:', error.message)
-    // If this was a preferred-worker job and we're the preferred worker, clear it
-    // so the customer sees the "unavailable" banner and other workers can see the job
     if (order.preferred_worker_id === workerId) {
-      await supabase.from('orders')
-        .update({ preferred_worker_id: null })
-        .eq('id', order.id)
+      // Single atomic update: clear preferred window + mark us declined
+      // One UPDATE event fires → other workers' handlers detect preferred_worker_id = null
+      const { error } = await supabase.from('orders').update({
+        preferred_worker_id: null,
+        declined_worker_ids: [...(order.declined_worker_ids || []), workerId],
+      }).eq('id', order.id)
+      if (error) console.error('decline preferred job failed:', error.message)
+    } else {
+      const { error } = await supabase.rpc('decline_job', { p_order_id: order.id, p_worker_id: workerId })
+      if (error) console.error('decline_job failed:', error.message)
     }
     setQueue(prev => prev.filter(o => o.id !== order.id))
   }
