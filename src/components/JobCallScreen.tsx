@@ -142,6 +142,7 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
       .eq('status', 'booked')
       .is('worker_id', null)
       .not('declined_worker_ids', 'cs', `{${workerId}}`)
+      .or(`preferred_worker_id.is.null,preferred_worker_id.eq.${workerId}`)
       .order('created_at', { ascending: true })
     const cats = meta.service_categories || []
     const now = Date.now()
@@ -167,17 +168,33 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
         const order = payload.new as Order
         if (order.status !== 'booked' || order.worker_id) return
         if ((order.declined_worker_ids || []).includes(workerId)) return
+        if (order.preferred_worker_id && order.preferred_worker_id !== workerId) return
         const cats = workerMeta.service_categories || []
         if (cats.length > 0 && !cats.includes(order.service)) return
         if (await isBusy()) return
         enqueueWithRadius(order)
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, payload => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, async payload => {
         const updated = payload.new as Order
+        // Job taken by another worker — remove from queue
         if (updated.worker_id && updated.worker_id !== workerId) {
           const timer = pendingTimers.current.get(updated.id)
           if (timer) { clearTimeout(timer); pendingTimers.current.delete(updated.id) }
           setQueue(prev => prev.filter(o => o.id !== updated.id))
+          return
+        }
+        // Preferred worker declined → preferred_worker_id cleared → now open to all workers
+        if (
+          updated.status === 'booked' &&
+          !updated.worker_id &&
+          !updated.preferred_worker_id
+        ) {
+          if (!workerMeta?.verified || !workerMeta?.is_active || !workerMeta?.is_online) return
+          if ((updated.declined_worker_ids || []).includes(workerId)) return
+          const cats = workerMeta.service_categories || []
+          if (cats.length > 0 && !cats.includes(updated.service)) return
+          if (await isBusy()) return
+          enqueueWithRadius(updated)
         }
       })
       .subscribe()
@@ -215,6 +232,13 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
   async function doDecline(order: Order) {
     const { error } = await supabase.rpc('decline_job', { p_order_id: order.id, p_worker_id: workerId })
     if (error) console.error('decline_job failed:', error.message)
+    // If this was a preferred-worker job and we're the preferred worker, clear it
+    // so the customer sees the "unavailable" banner and other workers can see the job
+    if (order.preferred_worker_id === workerId) {
+      await supabase.from('orders')
+        .update({ preferred_worker_id: null, preferred_worker_code: null })
+        .eq('id', order.id)
+    }
     setQueue(prev => prev.filter(o => o.id !== order.id))
   }
 
