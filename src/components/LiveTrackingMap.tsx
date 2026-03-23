@@ -146,10 +146,11 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
       </div>
 
       {/* Map */}
+      {/* Outer clips to 240 px; inner is 264 px so the ~24 px attribution bar is hidden */}
       <div className="rounded-2xl overflow-hidden border border-slate-700" style={{ height: 240 }}>
         {isLoaded ? (
           <GoogleMap
-            mapContainerStyle={{ width: '100%', height: '100%' }}
+            mapContainerStyle={{ width: '100%', height: '264px' }}
             center={initialCenter.current}
             zoom={15}
             onLoad={onMapLoad}
