@@ -40,7 +40,19 @@ export default function AdminPayments() {
       .from('bonus_claims')
       .select('*')
       .order('created_at', { ascending: false })
-    setBonusClaims((data as BonusClaim[]) || [])
+    const claims = (data as BonusClaim[]) || []
+    setBonusClaims(claims)
+    // fetch UPI IDs for claim workers (merge with existing map)
+    const ids = [...new Set(claims.map(c => c.worker_id))]
+    if (!ids.length) return
+    const { data: workers } = await supabase.from('workers').select('id,upi_id').in('id', ids)
+    setWorkerUpi(prev => {
+      const next = { ...prev }
+      ;(workers || []).forEach((w: { id: string; upi_id: string | null }) => {
+        if (w.upi_id) next[w.id] = w.upi_id
+      })
+      return next
+    })
   }
 
   async function markBonusPaid(c: BonusClaim) {
@@ -231,6 +243,10 @@ export default function AdminPayments() {
                 <div className="flex-1 min-w-0 mr-3">
                   <p className="text-slate-50 text-sm font-semibold truncate">{c.worker_name}</p>
                   <p className="text-slate-500 text-xs truncate">{c.milestone_icon} {c.milestone_badge} · {formatDate(c.created_at)}</p>
+                  {workerUpi[c.worker_id]
+                    ? <p className="text-blue-400 text-xs font-mono mt-1 truncate">UPI: {workerUpi[c.worker_id]}</p>
+                    : <p className="text-slate-600 text-xs mt-1">No UPI ID on file</p>
+                  }
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <span className="text-purple-400 font-black text-base">{formatCurrency(c.amount)}</span>
