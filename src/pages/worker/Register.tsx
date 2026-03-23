@@ -8,6 +8,7 @@ import { OtpInput } from '../../components/OtpInput'
 import { useAuth } from '../../context/AuthContext'
 import { createRecaptchaVerifier, sendOtp, verifyOtp, type ConfirmationResult, type RecaptchaVerifier } from '../../lib/firebaseOtp'
 import { supabase } from '../../lib/supabase'
+import { generateWorkerCode } from '../../lib/utils'
 import { Camera, IdCard, CheckCircle2 } from 'lucide-react'
 
 const STEPS = ['info', 'otp', 'aadhaar', 'docs', 'photo'] as const
@@ -191,6 +192,7 @@ export default function WorkerRegister() {
         verified: false,
         is_active: true,
         is_online: false,
+        worker_code: generateWorkerCode(),
       }, { onConflict: 'id' })
       if (workerError) throw workerError
 

@@ -59,6 +59,15 @@ export default function JobDetail() {
   const isMyJob = order.worker_id === session?.id
   const canAccept = order.status === 'booked' && !order.worker_id
 
+  // Decline preferred job — releases it to general pool
+  async function declinePreferredJob() {
+    setSaving(true)
+    await supabase.from('orders').update({ preferred_worker_id: null, preferred_worker_code: null }).eq('id', order!.id)
+    setSaving(false)
+    toast.success('Declined — job is now open to all workers')
+    navigate('/worker')
+  }
+
   // Step 1: Accept job
   async function acceptJob() {
     if (!session) return
@@ -294,14 +303,27 @@ export default function JobDetail() {
         </div>
       )}
       {canAccept && !hasActiveJob && (
-        <div className="flex gap-3 mb-4">
-          <Button variant="primary" className="flex-1" loading={saving} onClick={acceptJob}>
-            Accept Job ✓
-          </Button>
-          <Button variant="danger" className="flex-1" onClick={() => navigate('/worker')}>
-            Decline
-          </Button>
-        </div>
+        <>
+          {order.preferred_worker_id === session?.id && (
+            <div className="bg-orange-500/10 border border-orange-500/40 rounded-xl p-3 mb-3 flex items-center gap-2">
+              <span className="text-xl shrink-0">🎯</span>
+              <p className="text-orange-400 text-sm font-semibold">A customer specifically requested you for this job!</p>
+            </div>
+          )}
+          <div className="flex gap-3 mb-4">
+            <Button variant="primary" className="flex-1" loading={saving} onClick={acceptJob}>
+              Accept Job ✓
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1"
+              loading={saving}
+              onClick={order.preferred_worker_id === session?.id ? declinePreferredJob : () => navigate('/worker')}
+            >
+              Decline
+            </Button>
+          </div>
+        </>
       )}
 
       {/* After accepting but before status=worker_visiting: enter arrival OTP */}

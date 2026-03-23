@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { toast } from 'sonner'
 import { BottomNav } from '../../components/BottomNav'
-import { Briefcase, DollarSign, User, LogOut, Edit2, Check, X, History, Trophy } from 'lucide-react'
+import { Briefcase, DollarSign, User, LogOut, Edit2, Check, X, History, Trophy, Copy, Share2 } from 'lucide-react'
 import { SERVICES } from '../../constants'
 import { useWorkerProgress, MILESTONES } from '../../hooks/useWorkerProgress'
 import type { Worker } from '../../types'
@@ -186,6 +186,34 @@ export default function WorkerProfile() {
           </div>
         )}
       </div>
+
+      {/* Worker Code */}
+      {worker?.worker_code && (
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">
+          <p className="text-slate-50 font-semibold text-sm mb-1">My Worker Code</p>
+          <p className="text-slate-500 text-xs mb-3">Share this code with customers so they can request you directly</p>
+          <div className="flex items-center justify-between bg-slate-900 rounded-xl px-4 py-3">
+            <p className="text-2xl font-black text-orange-400 tracking-[0.25em] font-mono">{worker.worker_code}</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { navigator.clipboard.writeText(worker.worker_code!); toast.success('Code copied!') }}
+                className="flex items-center gap-1 text-blue-400 text-xs font-semibold"
+              >
+                <Copy size={14} /> Copy
+              </button>
+              <button
+                onClick={() => navigator.share?.({
+                  title: 'Book me on GetMyPro',
+                  text: `Use my worker code ${worker.worker_code} to request me directly when booking on GetMyPro!`,
+                })}
+                className="flex items-center gap-1 text-green-400 text-xs font-semibold"
+              >
+                <Share2 size={14} /> Share
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Service categories */}
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">

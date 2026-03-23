@@ -35,6 +35,13 @@ export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+export function generateWorkerCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const arr = new Uint8Array(6)
+  crypto.getRandomValues(arr)
+  return Array.from(arr).map(b => chars[b % chars.length]).join('')
+}
+
 export function generateOrderId(): string {
   const arr = new Uint32Array(1)
   crypto.getRandomValues(arr)

@@ -33,6 +33,11 @@ export default function Book() {
   const [lng, setLng] = useState<number | null>(null)
   const [showMapPicker, setShowMapPicker] = useState(false)
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
+  const [workerCode, setWorkerCode] = useState('')
+  const [preferredWorkerId, setPreferredWorkerId] = useState<string | null>(null)
+  const [codeWorkerName, setCodeWorkerName] = useState<string | null>(null)
+  const [codeError, setCodeError] = useState<string | null>(null)
+  const [checkingCode, setCheckingCode] = useState(false)
   const { session } = useAuth()
   const navigate = useNavigate()
 
@@ -77,6 +82,23 @@ export default function Book() {
     setCheckingAvailability(false)
   }
 
+  useEffect(() => {
+    const code = workerCode.trim()
+    if (code.length < 6) { setPreferredWorkerId(null); setCodeWorkerName(null); setCodeError(null); return }
+    setCheckingCode(true)
+    supabase.from('workers').select('id, name, verified, is_active')
+      .eq('worker_code', code)
+      .maybeSingle()
+      .then(({ data }) => {
+        setCheckingCode(false)
+        if (!data) { setCodeError('Code not found'); setPreferredWorkerId(null); setCodeWorkerName(null); return }
+        if (!data.verified || !data.is_active) { setCodeError('Worker not available'); setPreferredWorkerId(null); setCodeWorkerName(null); return }
+        setCodeError(null)
+        setPreferredWorkerId(data.id)
+        setCodeWorkerName(data.name)
+      })
+  }, [workerCode])
+
   const serviceObj = SERVICES.find(s => s.name === selectedService)
 
   async function handleBook() {
@@ -111,6 +133,8 @@ export default function Book() {
         mat_commission: 0,
         arrival_otp: arrivalOtp,
         comp_otp: compOtp,
+        preferred_worker_id: preferredWorkerId || null,
+        preferred_worker_code: preferredWorkerId ? workerCode : null,
       })
       if (error) throw error
 
@@ -346,6 +370,22 @@ export default function Book() {
                 rows={3}
                 className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-slate-50 placeholder-slate-500 outline-none focus:border-blue-500 transition-colors resize-none"
               />
+            </div>
+            {/* Worker code */}
+            <div>
+              <label className="block text-sm text-slate-400 mb-1 font-medium">
+                Worker Code <span className="text-slate-600 text-xs">(optional — to request a specific pro)</span>
+              </label>
+              <input
+                value={workerCode}
+                onChange={e => setWorkerCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                placeholder="e.g. A3K9XZ"
+                maxLength={6}
+                className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-slate-50 placeholder-slate-500 outline-none focus:border-orange-500 transition-colors font-mono tracking-widest text-center text-lg uppercase"
+              />
+              {checkingCode && <p className="text-slate-500 text-xs mt-1 text-center">Checking code…</p>}
+              {codeError && <p className="text-red-400 text-xs mt-1 text-center">{codeError}</p>}
+              {codeWorkerName && <p className="text-green-400 text-xs mt-1 text-center font-semibold">✓ {codeWorkerName} will be notified first</p>}
             </div>
           </div>
 

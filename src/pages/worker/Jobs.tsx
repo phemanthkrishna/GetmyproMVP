@@ -75,6 +75,7 @@ export default function WorkerJobs() {
       .select('*')
       .eq('status', 'booked')
       .is('worker_id', null)
+      .or(`preferred_worker_id.is.null,preferred_worker_id.eq.${session?.id}`)
       .order('created_at', { ascending: false })
     setAvailable((data as Order[]) || [])
   }
@@ -207,34 +208,52 @@ export default function WorkerJobs() {
       )}
 
       {/* Available Jobs */}
-      {isVerified && workerInfo?.is_online && !isBusyOnJob && (
-        <>
-          <h2 className="text-base font-bold text-slate-300 mb-3">Available Jobs</h2>
-          {filteredAvailable.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-slate-500">No jobs available right now</p>
-              <p className="text-slate-600 text-xs mt-1">Check back soon</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {filteredAvailable.map(o => (
-                <JobCard key={o.id} order={o} onClick={() => navigate(`/worker/job/${o.id}`)} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      {isVerified && workerInfo?.is_online && !isBusyOnJob && (() => {
+        const requestedJobs = filteredAvailable.filter(o => o.preferred_worker_id === session?.id)
+        const generalJobs   = filteredAvailable.filter(o => !o.preferred_worker_id)
+        return (
+          <>
+            {requestedJobs.length > 0 && (
+              <>
+                <h2 className="text-base font-bold text-orange-400 mb-3">🎯 Requested for You</h2>
+                <div className="flex flex-col gap-3 mb-5">
+                  {requestedJobs.map(o => (
+                    <JobCard key={o.id} order={o} requested onClick={() => navigate(`/worker/job/${o.id}`)} />
+                  ))}
+                </div>
+              </>
+            )}
+            <h2 className="text-base font-bold text-slate-300 mb-3">Available Jobs</h2>
+            {generalJobs.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-slate-500">No jobs available right now</p>
+                <p className="text-slate-600 text-xs mt-1">Check back soon</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {generalJobs.map(o => (
+                  <JobCard key={o.id} order={o} onClick={() => navigate(`/worker/job/${o.id}`)} />
+                ))}
+              </div>
+            )}
+          </>
+        )
+      })()}
 
       <BottomNav items={NAV} />
     </div>
   )
 }
 
-function JobCard({ order, onClick }: { order: Order; onClick: () => void }) {
+function JobCard({ order, onClick, requested }: { order: Order; onClick: () => void; requested?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-left btn-press w-full"
+      className={`border rounded-2xl p-4 text-left btn-press w-full ${
+        requested
+          ? 'bg-orange-500/10 border-orange-500/40'
+          : 'bg-slate-800 border-slate-700'
+      }`}
     >
       <div className="flex items-center gap-3">
         <span className="text-2xl shrink-0">{order.service_emoji}</span>

@@ -40,6 +40,7 @@ export interface Worker {
   is_online: boolean
   is_active: boolean
   completed_milestones?: Array<{ job: number; earnedAt: string }>
+  worker_code?: string
   created_at: string
 }
 
@@ -92,6 +93,8 @@ export interface Order {
   labour_approval_pending?: boolean
   labour_pending_amount?: number
   declined_worker_ids?: string[]
+  preferred_worker_id?: string | null
+  preferred_worker_code?: string | null
   created_at: string
   updated_at: string
 }
