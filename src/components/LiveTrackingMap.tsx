@@ -130,7 +130,7 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
         <div className="flex-1 min-w-0">
           <p className="text-slate-400 text-xs">Estimated arrival</p>
           {eta ? (
-            <p className="text-white font-black text-lg leading-tight">{eta}</p>
+            <p className="text-slate-50 font-black text-lg leading-tight">{eta}</p>
           ) : workerPos ? (
             <p className="text-slate-300 font-semibold text-sm">Calculating route…</p>
           ) : (
@@ -204,7 +204,7 @@ export function LiveTrackingMap({ workerId, workerName, customerLat, customerLng
       {/* Legend */}
       <div className="flex items-center gap-4 mt-2 px-1">
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-slate-700 border-2 border-slate-400 shrink-0" />
+          <span className="w-3 h-3 rounded-full shrink-0" style={{ background: '#1e293b' }} />
           <span className="text-slate-500 text-xs">Your location</span>
         </div>
         <div className="flex items-center gap-1.5">
