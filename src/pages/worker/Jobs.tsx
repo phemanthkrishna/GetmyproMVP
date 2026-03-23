@@ -65,19 +65,50 @@ export default function WorkerJobs() {
       .channel('available-jobs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => fetchAvailable())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchAvailable())
+      // Re-evaluate preferred visibility when any worker goes online/offline
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'workers' }, () => fetchAvailable())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
 
   async function fetchAvailable() {
-    const { data } = await supabase
+    // Fetch all unassigned booked orders first
+    const { data: orders } = await supabase
       .from('orders')
       .select('*')
       .eq('status', 'booked')
       .is('worker_id', null)
-      .or(`preferred_worker_id.is.null,preferred_worker_id.eq.${session?.id}`)
       .order('created_at', { ascending: false })
-    setAvailable((data as Order[]) || [])
+
+    const all = (orders as Order[]) || []
+
+    // Collect preferred_worker_ids that need an availability check
+    const preferredIds = [...new Set(
+      all.map(o => o.preferred_worker_id).filter((id): id is string => !!id && id !== session?.id)
+    )]
+
+    let unavailable = new Set<string>()
+    if (preferredIds.length > 0) {
+      // A preferred worker is "unavailable" if offline OR has an active job
+      const [offlineRes, busyRes] = await Promise.all([
+        supabase.from('workers').select('id').in('id', preferredIds).eq('is_online', false),
+        supabase.from('orders').select('worker_id')
+          .in('worker_id', preferredIds)
+          .not('status', 'in', '(completed,cancelled)'),
+      ])
+      unavailable = new Set<string>([
+        ...((offlineRes.data || []).map((w: { id: string }) => w.id)),
+        ...((busyRes.data || []).map((o: { worker_id: string }) => o.worker_id).filter(Boolean)),
+      ])
+    }
+
+    // Show job if: no preferred worker, I'm the preferred worker, or preferred worker is unavailable
+    const visible = all.filter(o =>
+      !o.preferred_worker_id ||
+      o.preferred_worker_id === session?.id ||
+      unavailable.has(o.preferred_worker_id)
+    )
+    setAvailable(visible)
   }
 
   async function toggleOnline() {
