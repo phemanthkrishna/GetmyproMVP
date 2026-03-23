@@ -361,29 +361,29 @@ export default function JobDetail() {
             <div className={needsMaterials ? '' : 'hidden'}>
               <p className="text-sm text-slate-400 mb-2 font-medium">Materials list</p>
               {materials.map((m, i) => (
-                <div key={i} className="flex gap-2 mb-2 items-center">
+                <div key={i} className="flex gap-2 mb-2 items-center overflow-hidden">
                   <input
                     placeholder="Item name"
                     value={m.name}
                     onChange={e => updateMaterial(i, 'name', e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
+                    className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-50 text-sm outline-none focus:border-blue-500"
                   />
                   <input
                     type="number"
                     min="1"
                     value={m.qty}
                     onChange={e => updateMaterial(i, 'qty', Number(e.target.value))}
-                    className="w-14 bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-slate-50 text-sm outline-none focus:border-blue-500 text-center"
+                    className="w-14 shrink-0 bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-slate-50 text-sm outline-none focus:border-blue-500 text-center"
                   />
                   <select
                     value={m.unit}
                     onChange={e => updateMaterial(i, 'unit', e.target.value)}
-                    className="bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-slate-50 text-sm outline-none"
+                    className="w-[72px] shrink-0 bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-slate-50 text-sm outline-none"
                   >
                     {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                   {i > 0 && (
-                    <button onClick={() => removeMaterial(i)} className="text-red-400">
+                    <button onClick={() => removeMaterial(i)} className="shrink-0 text-red-400 p-1">
                       <X size={16} />
                     </button>
                   )}
