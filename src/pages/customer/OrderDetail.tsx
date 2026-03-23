@@ -11,6 +11,8 @@ import { supabase } from '../../lib/supabase'
 import { formatDate, formatCurrency } from '../../lib/utils'
 import { TRANSACTION_FEE_RATE } from '../../constants'
 import { ArrowLeft, Star, Phone } from 'lucide-react'
+import { MILESTONES } from '../../hooks/useWorkerProgress'
+import type { Milestone } from '../../hooks/useWorkerProgress'
 
 // Per-step summary shown in the first card
 const STEP_SUMMARY: Record<string, { icon: string; title: string; desc: string; color: string; bg: string }> = {
@@ -84,6 +86,7 @@ export default function CustomerOrderDetail() {
   const [upiRef, setUpiRef] = useState('')
   const [saving, setSaving] = useState(false)
   const [workerPhoto, setWorkerPhoto] = useState<string | null>(null)
+  const [workerBadge, setWorkerBadge] = useState<Milestone | null>(null)
   const [paymentSubmitted, setPaymentSubmitted] = useState(false)
   const [showRatingPopup, setShowRatingPopup] = useState(false)
   const [hoverRating, setHoverRating] = useState(0)
@@ -98,9 +101,15 @@ export default function CustomerOrderDetail() {
 
   useEffect(() => {
     if (order?.worker_id) {
-      supabase.from('workers').select('photo_url').eq('id', order.worker_id).maybeSingle()
+      supabase.from('workers').select('photo_url, completed_milestones').eq('id', order.worker_id).maybeSingle()
         .then(({ data, error }) => {
-          if (!error) setWorkerPhoto(data?.photo_url || null)
+          if (!error) {
+            setWorkerPhoto(data?.photo_url || null)
+            const records = (data?.completed_milestones as Array<{ job: number }>) ?? []
+            const earnedJobs = new Set(records.map(r => r.job))
+            const badge = [...MILESTONES].reverse().find(m => earnedJobs.has(m.job)) ?? null
+            setWorkerBadge(badge)
+          }
         })
     }
   }, [order?.worker_id])
@@ -344,7 +353,16 @@ export default function CustomerOrderDetail() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-slate-50 text-sm font-semibold">{order.worker_name}</p>
-                <p className="text-slate-500 text-xs">Your assigned Pro</p>
+                {workerBadge ? (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold mt-0.5"
+                    style={{ background: workerBadge.color + '20', color: workerBadge.color, border: `1px solid ${workerBadge.color}50` }}
+                  >
+                    {workerBadge.icon} {workerBadge.badge}
+                  </span>
+                ) : (
+                  <p className="text-slate-500 text-xs">Your assigned Pro</p>
+                )}
               </div>
               {order.worker_phone && (
                 <a
