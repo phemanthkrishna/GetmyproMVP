@@ -8,10 +8,12 @@ import { OtpInput } from '../../components/OtpInput'
 import { useAuth } from '../../context/AuthContext'
 import { createRecaptchaVerifier, sendOtp, verifyOtp, type ConfirmationResult, type RecaptchaVerifier } from '../../lib/firebaseOtp'
 import { supabase } from '../../lib/supabase'
-import { Camera } from 'lucide-react'
+import { Camera, IdCard, CheckCircle2 } from 'lucide-react'
 
-const STEPS = ['info', 'otp', 'aadhaar', 'photo'] as const
+const STEPS = ['info', 'otp', 'aadhaar', 'docs', 'photo'] as const
 type Step = typeof STEPS[number]
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
 
 export default function WorkerRegister() {
   const [step, setStep] = useState<Step>('info')
@@ -21,17 +23,28 @@ export default function WorkerRegister() {
   const [otp, setOtp] = useState('')
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const verifierRef = useRef<RecaptchaVerifier | null>(null)
+
   const [aadhaarNumber, setAadhaarNumber] = useState('')
   const [upiId, setUpiId] = useState('')
   const [workerAddress, setWorkerAddress] = useState('')
   const [experienceYears, setExperienceYears] = useState('')
+
+  // Aadhaar document images
+  const [aadhaarFrontFile, setAadhaarFrontFile] = useState<File | null>(null)
+  const [aadhaarFrontPreview, setAadhaarFrontPreview] = useState('')
+  const [aadhaarBackFile, setAadhaarBackFile] = useState<File | null>(null)
+  const [aadhaarBackPreview, setAadhaarBackPreview] = useState('')
+  const aadhaarFrontUrlRef = useRef('')
+  const aadhaarBackUrlRef = useRef('')
+
+  // Profile photo
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const photoUrlRef = useRef('')
+
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
-
-  const photoUrlRef = useRef('')
 
   useEffect(() => {
     try {
@@ -46,7 +59,11 @@ export default function WorkerRegister() {
   }, [])
 
   useEffect(() => {
-    return () => { if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current) }
+    return () => {
+      if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current)
+      if (aadhaarFrontUrlRef.current) URL.revokeObjectURL(aadhaarFrontUrlRef.current)
+      if (aadhaarBackUrlRef.current) URL.revokeObjectURL(aadhaarBackUrlRef.current)
+    }
   }, [])
 
   async function handleSendOtp() {
@@ -80,23 +97,37 @@ export default function WorkerRegister() {
     setLoading(false)
   }
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function pickImageFile(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (f: File) => void,
+    setPreview: (url: string) => void,
+    urlRef: React.MutableRefObject<string>,
+  ) {
     const file = e.target.files?.[0]
     if (!file) return
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
     if (!ALLOWED_TYPES.includes(file.type)) {
       toast.error('Only JPEG, PNG, WebP or HEIC images are allowed')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Photo must be under 5 MB')
+      toast.error('Image must be under 5 MB')
       return
     }
-    if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current)
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current)
     const url = URL.createObjectURL(file)
-    photoUrlRef.current = url
-    setPhotoFile(file)
-    setPhotoPreview(url)
+    urlRef.current = url
+    setFile(file)
+    setPreview(url)
+  }
+
+  function clearAadhaarFront() {
+    if (aadhaarFrontUrlRef.current) { URL.revokeObjectURL(aadhaarFrontUrlRef.current); aadhaarFrontUrlRef.current = '' }
+    setAadhaarFrontFile(null); setAadhaarFrontPreview('')
+  }
+
+  function clearAadhaarBack() {
+    if (aadhaarBackUrlRef.current) { URL.revokeObjectURL(aadhaarBackUrlRef.current); aadhaarBackUrlRef.current = '' }
+    setAadhaarBackFile(null); setAadhaarBackPreview('')
   }
 
   async function handleComplete() {
@@ -123,14 +154,26 @@ export default function WorkerRegister() {
         .single()
       if (profileError) throw profileError
 
-      // Upload photo with sanitized extension
-      const ext = (photoFile.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
-      const path = `photos/${profile.id}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(path, photoFile, { upsert: true })
-      if (uploadError) throw uploadError
-      const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path)
+      // Upload profile photo
+      const photoExt = (photoFile.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      const photoPath = `photos/${profile.id}.${photoExt}`
+      const { error: photoUploadErr } = await supabase.storage.from('uploads').upload(photoPath, photoFile, { upsert: true })
+      if (photoUploadErr) throw photoUploadErr
+      const { data: { publicUrl: photoUrl } } = supabase.storage.from('uploads').getPublicUrl(photoPath)
+
+      // Upload Aadhaar front
+      const frontExt = (aadhaarFrontFile!.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      const frontPath = `aadhaar/${profile.id}_front.${frontExt}`
+      const { error: frontErr } = await supabase.storage.from('uploads').upload(frontPath, aadhaarFrontFile!, { upsert: true })
+      if (frontErr) throw frontErr
+      const { data: { publicUrl: aadhaarFrontUrl } } = supabase.storage.from('uploads').getPublicUrl(frontPath)
+
+      // Upload Aadhaar back
+      const backExt = (aadhaarBackFile!.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      const backPath = `aadhaar/${profile.id}_back.${backExt}`
+      const { error: backErr } = await supabase.storage.from('uploads').upload(backPath, aadhaarBackFile!, { upsert: true })
+      if (backErr) throw backErr
+      const { data: { publicUrl: aadhaarBackUrl } } = supabase.storage.from('uploads').getPublicUrl(backPath)
 
       const { error: workerError } = await supabase.from('workers').upsert({
         id: profile.id,
@@ -139,7 +182,9 @@ export default function WorkerRegister() {
         service: serviceCategories[0],
         service_categories: serviceCategories,
         aadhaar_url: aadhaarNumber.replace(/\s/g, ''),
-        photo_url: publicUrl,
+        aadhaar_front_url: aadhaarFrontUrl,
+        aadhaar_back_url: aadhaarBackUrl,
+        photo_url: photoUrl,
         upi_id: upiId.trim() || null,
         address: workerAddress.trim(),
         experience_years: experienceYears,
@@ -302,6 +347,91 @@ export default function WorkerRegister() {
               if (aadhaarNumber.replace(/\s/g, '').length !== 12) return toast.error('Enter valid 12-digit Aadhaar number')
               if (!workerAddress.trim()) return toast.error('Enter your address')
               if (!experienceYears) return toast.error('Select your years of experience')
+              setStep('docs')
+            }}
+          >
+            Continue →
+          </Button>
+        </>
+      )}
+
+      {step === 'docs' && (
+        <>
+          <h1 className="text-2xl font-black font-heading text-slate-50 mb-2">Aadhaar Card Photos</h1>
+          <p className="text-slate-400 mb-6">Upload clear photos of both sides of your Aadhaar card</p>
+
+          {/* Front side */}
+          <div className="mb-5">
+            <p className="text-slate-300 text-sm font-semibold mb-2 flex items-center gap-2">
+              <IdCard size={16} className="text-orange-400" /> Front Side
+            </p>
+            {aadhaarFrontPreview ? (
+              <div className="relative">
+                <img src={aadhaarFrontPreview} alt="Aadhaar front" className="w-full rounded-2xl object-cover border border-slate-700" style={{ maxHeight: 180 }} />
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-600/90 text-white text-xs font-bold px-2 py-1 rounded-lg">
+                  <CheckCircle2 size={12} /> Uploaded
+                </div>
+                <button onClick={clearAadhaarFront} className="text-slate-500 text-xs text-center w-full mt-2">
+                  Retake
+                </button>
+              </div>
+            ) : (
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-slate-600 rounded-2xl p-6 text-center hover:border-orange-500 transition-colors">
+                  <IdCard className="mx-auto text-slate-500 mb-2" size={32} />
+                  <p className="text-slate-400 font-semibold text-sm">Tap to upload front</p>
+                  <p className="text-slate-600 text-xs mt-1">Name &amp; photo side · JPG or PNG</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={e => pickImageFile(e, setAadhaarFrontFile, setAadhaarFrontPreview, aadhaarFrontUrlRef)}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* Back side */}
+          <div className="mb-6">
+            <p className="text-slate-300 text-sm font-semibold mb-2 flex items-center gap-2">
+              <IdCard size={16} className="text-orange-400" /> Back Side
+            </p>
+            {aadhaarBackPreview ? (
+              <div className="relative">
+                <img src={aadhaarBackPreview} alt="Aadhaar back" className="w-full rounded-2xl object-cover border border-slate-700" style={{ maxHeight: 180 }} />
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-600/90 text-white text-xs font-bold px-2 py-1 rounded-lg">
+                  <CheckCircle2 size={12} /> Uploaded
+                </div>
+                <button onClick={clearAadhaarBack} className="text-slate-500 text-xs text-center w-full mt-2">
+                  Retake
+                </button>
+              </div>
+            ) : (
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-slate-600 rounded-2xl p-6 text-center hover:border-orange-500 transition-colors">
+                  <IdCard className="mx-auto text-slate-500 mb-2" size={32} />
+                  <p className="text-slate-400 font-semibold text-sm">Tap to upload back</p>
+                  <p className="text-slate-600 text-xs mt-1">Address &amp; barcode side · JPG or PNG</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={e => pickImageFile(e, setAadhaarBackFile, setAadhaarBackPreview, aadhaarBackUrlRef)}
+                />
+              </label>
+            )}
+          </div>
+
+          <Button
+            size="lg"
+            variant="accent"
+            onClick={() => {
+              if (!aadhaarFrontFile) return toast.error('Upload the front side of your Aadhaar card')
+              if (!aadhaarBackFile) return toast.error('Upload the back side of your Aadhaar card')
               setStep('photo')
             }}
           >
@@ -327,12 +457,21 @@ export default function WorkerRegister() {
                 </>
               )}
             </div>
-            <input type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              className="hidden"
+              onChange={e => pickImageFile(e, setPhotoFile, setPhotoPreview, photoUrlRef)}
+            />
           </label>
 
           {photoPreview && (
             <button
-              onClick={() => { if (photoUrlRef.current) { URL.revokeObjectURL(photoUrlRef.current); photoUrlRef.current = '' } setPhotoFile(null); setPhotoPreview('') }}
+              onClick={() => {
+                if (photoUrlRef.current) { URL.revokeObjectURL(photoUrlRef.current); photoUrlRef.current = '' }
+                setPhotoFile(null); setPhotoPreview('')
+              }}
               className="text-slate-500 text-xs text-center w-full mb-4"
             >
               Retake photo

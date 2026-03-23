@@ -27,6 +27,8 @@ export interface Worker {
   phone: string
   service: string
   aadhaar_url?: string
+  aadhaar_front_url?: string
+  aadhaar_back_url?: string
   photo_url?: string
   upi_id?: string
   address?: string
