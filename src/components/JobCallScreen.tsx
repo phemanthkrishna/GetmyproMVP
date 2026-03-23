@@ -181,22 +181,23 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
           const timer = pendingTimers.current.get(updated.id)
           if (timer) { clearTimeout(timer); pendingTimers.current.delete(updated.id) }
           setQueue(prev => prev.filter(o => o.id !== updated.id))
-          return
-        }
-        // Preferred worker declined → preferred_worker_id cleared → reload all pending orders
-        if (
-          updated.status === 'booked' &&
-          !updated.worker_id &&
-          !updated.preferred_worker_id &&
-          workerMeta?.verified && workerMeta?.is_active && workerMeta?.is_online
-        ) {
-          if (await isBusy()) return
-          loadPendingOrders(workerMeta)
         }
       })
       .subscribe()
+
+    // Separate shared broadcast channel — preferred worker sends here on decline
+    // This bypasses RLS so ALL online workers reliably receive the notification
+    const broadcastCh = supabase.channel('job-pool')
+      .on('broadcast', { event: 'job_released' }, async () => {
+        if (!workerMeta?.verified || !workerMeta?.is_active || !workerMeta?.is_online) return
+        if (await isBusy()) return
+        loadPendingOrders(workerMeta)
+      })
+      .subscribe()
+
     return () => {
       supabase.removeChannel(ch)
+      supabase.removeChannel(broadcastCh)
       pendingTimers.current.forEach(t => clearTimeout(t))
       pendingTimers.current.clear()
     }
@@ -229,12 +230,17 @@ export function JobCallScreen({ workerId, workerName, workerPhone }: Props) {
   async function doDecline(order: Order) {
     if (order.preferred_worker_id === workerId) {
       // Single atomic update: clear preferred window + mark us declined
-      // One UPDATE event fires → other workers' handlers detect preferred_worker_id = null
       const { error } = await supabase.from('orders').update({
         preferred_worker_id: null,
         declined_worker_ids: [...(order.declined_worker_ids || []), workerId],
       }).eq('id', order.id)
       if (error) console.error('decline preferred job failed:', error.message)
+      // Broadcast to all workers via shared channel — bypasses RLS, guaranteed delivery
+      supabase.channel('job-pool').send({
+        type: 'broadcast',
+        event: 'job_released',
+        payload: { order_id: order.id },
+      })
     } else {
       const { error } = await supabase.rpc('decline_job', { p_order_id: order.id, p_worker_id: workerId })
       if (error) console.error('decline_job failed:', error.message)
