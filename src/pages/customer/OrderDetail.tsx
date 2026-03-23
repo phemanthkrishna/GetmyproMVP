@@ -229,6 +229,17 @@ export default function CustomerOrderDetail() {
         `}</style>
       </Card>
 
+      {/* ── Preferred worker unavailable notice ─────────────────────── */}
+      {order.preferred_worker_code && !order.preferred_worker_id && !order.worker_id && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 flex items-start gap-3">
+          <span className="text-xl shrink-0">⚠️</span>
+          <div>
+            <p className="text-amber-400 font-bold text-sm">Your requested Pro is currently not available</p>
+            <p className="text-slate-400 text-xs mt-0.5">We will assign the next available Pro for you now</p>
+          </div>
+        </div>
+      )}
+
       {/* ── 2. Order Journey ───────────────────────────────────────── */}
       <Card className="mb-4">
         <p className="font-bold text-slate-50 mb-4">Order Journey</p>

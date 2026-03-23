@@ -112,6 +112,20 @@ export default function Book() {
       const arrivalOtp = generateOtp()
       const compOtp = generateOtp()
 
+      // If a worker code was used, verify the preferred worker is online & not busy right now
+      let resolvedPreferredId = preferredWorkerId
+      if (preferredWorkerId) {
+        const [onlineRes, busyRes] = await Promise.all([
+          supabase.from('workers').select('is_online').eq('id', preferredWorkerId).single(),
+          supabase.from('orders').select('id', { count: 'exact', head: true })
+            .eq('worker_id', preferredWorkerId)
+            .not('status', 'in', '(completed,cancelled)'),
+        ])
+        const isOnline = onlineRes.data?.is_online ?? false
+        const isBusy = (busyRes.count ?? 0) > 0
+        if (!isOnline || isBusy) resolvedPreferredId = null
+      }
+
       const { error } = await supabase.from('orders').insert({
         id: orderId,
         customer_id: session.id,
@@ -133,7 +147,7 @@ export default function Book() {
         mat_commission: 0,
         arrival_otp: arrivalOtp,
         comp_otp: compOtp,
-        preferred_worker_id: preferredWorkerId || null,
+        preferred_worker_id: resolvedPreferredId,
         preferred_worker_code: preferredWorkerId ? workerCode : null,
       })
       if (error) throw error
