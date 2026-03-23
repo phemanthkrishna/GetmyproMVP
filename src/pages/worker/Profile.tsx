@@ -133,9 +133,9 @@ export default function WorkerProfile() {
       </div>
 
       {/* Earned Badges */}
-      {earnedBadges.length > 0 && (
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">
-          <p className="text-slate-50 font-semibold text-sm mb-3">My Badges</p>
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">
+        <p className="text-slate-50 font-semibold text-sm mb-3">My Badges</p>
+        {earnedBadges.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {earnedBadges.map(m => (
               <div
@@ -148,8 +148,10 @@ export default function WorkerProfile() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-slate-500 text-sm">Complete jobs to earn badges 🏅</p>
+        )}
+      </div>
 
       {/* UPI ID */}
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">

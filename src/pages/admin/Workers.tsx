@@ -117,14 +117,12 @@ export default function AdminWorkers() {
                     {w.verified ? '✓ Verified' : '⏳ Pending'}
                   </span>
                 )}
-                {(w.aadhaar_url || w.aadhaar_front_url || w.aadhaar_back_url || (w.completed_milestones?.length ?? 0) > 0) && (
-                  <button
-                    onClick={() => setExpanded(expanded === w.id ? null : w.id)}
-                    className="text-slate-500"
-                  >
-                    {expanded === w.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
-                )}
+                <button
+                  onClick={() => setExpanded(expanded === w.id ? null : w.id)}
+                  className="text-slate-500"
+                >
+                  {expanded === w.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
               </div>
             </div>
 
@@ -163,21 +161,24 @@ export default function AdminWorkers() {
                 {/* Earned badges */}
                 {(() => {
                   const badges = MILESTONES.filter(m => (w.completed_milestones || []).some((r: { job: number }) => r.job === m.job))
-                  if (badges.length === 0) return null
                   return (
                     <div>
                       <p className="text-slate-400 text-xs mb-2">Earned Badges</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {badges.map(m => (
-                          <span
-                            key={m.job}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                            style={{ background: m.color + '20', color: m.color, border: `1px solid ${m.color}50` }}
-                          >
-                            {m.icon} {m.badge}
-                          </span>
-                        ))}
-                      </div>
+                      {badges.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {badges.map(m => (
+                            <span
+                              key={m.job}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                              style={{ background: m.color + '20', color: m.color, border: `1px solid ${m.color}50` }}
+                            >
+                              {m.icon} {m.badge}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-slate-600 text-xs">No badges earned yet</p>
+                      )}
                     </div>
                   )
                 })()}
