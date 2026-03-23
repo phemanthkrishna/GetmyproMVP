@@ -18,7 +18,7 @@ const NAV = [
   { to: '/customer/profile', icon: User, label: 'Profile' },
 ]
 
-interface SavedAddress { label: string; address: string }
+interface SavedAddress { label: string; address: string; lat?: number; lng?: number }
 
 export default function Book() {
   const [params] = useSearchParams()
@@ -237,7 +237,7 @@ export default function Book() {
                           <button
                             key={i}
                             type="button"
-                            onClick={() => { setAddress(a.address); setLat(null); setLng(null) }}
+                            onClick={() => { setAddress(a.address); setLat(a.lat ?? null); setLng(a.lng ?? null) }}
                             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
                               address === a.address
                                 ? 'border-orange-500 bg-orange-500/20 text-orange-300'
@@ -306,7 +306,7 @@ export default function Book() {
                       <button
                         key={i}
                         type="button"
-                        onClick={() => { setAddress(a.address); setLat(null); setLng(null) }}
+                        onClick={() => { setAddress(a.address); setLat(a.lat ?? null); setLng(a.lng ?? null) }}
                         className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
                           address === a.address
                             ? 'border-orange-500 bg-orange-500/20 text-orange-300'

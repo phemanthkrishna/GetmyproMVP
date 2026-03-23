@@ -12,7 +12,7 @@ const NAV = [
   { to: '/customer/profile', icon: User, label: 'Profile' },
 ]
 
-interface SavedAddress { label: string; address: string }
+interface SavedAddress { label: string; address: string; lat?: number; lng?: number }
 
 export default function CustomerProfile() {
   const { session, signIn, signOut } = useAuth()
@@ -27,12 +27,16 @@ export default function CustomerProfile() {
   const [addingAddress, setAddingAddress] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [newAddress, setNewAddress] = useState('')
+  const [newLat, setNewLat] = useState<number | null>(null)
+  const [newLng, setNewLng] = useState<number | null>(null)
   const [showMapForNew, setShowMapForNew] = useState(false)
 
   // Edit address form
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editLabel, setEditLabel] = useState('')
   const [editAddress, setEditAddress] = useState('')
+  const [editLat, setEditLat] = useState<number | null>(null)
+  const [editLng, setEditLng] = useState<number | null>(null)
   const [showMapForEdit, setShowMapForEdit] = useState(false)
 
   useEffect(() => {
@@ -62,18 +66,26 @@ export default function CustomerProfile() {
   async function addAddress() {
     if (!newLabel.trim()) return toast.error('Enter a label (e.g. Home, Work)')
     if (!newAddress.trim()) return toast.error('Enter the full address')
-    if (await persistAddresses([...addresses, { label: newLabel.trim(), address: newAddress.trim() }])) {
+    const entry: SavedAddress = { label: newLabel.trim(), address: newAddress.trim() }
+    if (newLat !== null) entry.lat = newLat
+    if (newLng !== null) entry.lng = newLng
+    if (await persistAddresses([...addresses, entry])) {
       toast.success('Address saved ✓')
       setAddingAddress(false)
       setNewLabel('')
       setNewAddress('')
+      setNewLat(null)
+      setNewLng(null)
     }
   }
 
   async function saveEdit(i: number) {
     if (!editLabel.trim()) return toast.error('Label cannot be empty')
     if (!editAddress.trim()) return toast.error('Address cannot be empty')
-    const updated = addresses.map((a, idx) => idx === i ? { label: editLabel.trim(), address: editAddress.trim() } : a)
+    const entry: SavedAddress = { label: editLabel.trim(), address: editAddress.trim() }
+    if (editLat !== null) entry.lat = editLat
+    if (editLng !== null) entry.lng = editLng
+    const updated = addresses.map((a, idx) => idx === i ? entry : a)
     if (await persistAddresses(updated)) {
       toast.success('Address updated ✓')
       setEditingIndex(null)
@@ -91,7 +103,7 @@ export default function CustomerProfile() {
       {/* MapPicker for new address */}
       {showMapForNew && (
         <MapPicker
-          onConfirm={(_, __, address) => { setNewAddress(address); setShowMapForNew(false) }}
+          onConfirm={(lat, lng, address) => { setNewLat(lat); setNewLng(lng); setNewAddress(address); setShowMapForNew(false) }}
           onClose={() => setShowMapForNew(false)}
         />
       )}
@@ -99,7 +111,7 @@ export default function CustomerProfile() {
       {/* MapPicker for edit address */}
       {showMapForEdit && (
         <MapPicker
-          onConfirm={(_, __, address) => { setEditAddress(address); setShowMapForEdit(false) }}
+          onConfirm={(lat, lng, address) => { setEditLat(lat); setEditLng(lng); setEditAddress(address); setShowMapForEdit(false) }}
           onClose={() => setShowMapForEdit(false)}
         />
       )}
@@ -223,7 +235,7 @@ export default function CustomerProfile() {
                     </div>
                   </div>
                   <div className="flex gap-3 shrink-0 mt-0.5">
-                    <button onClick={() => { setEditingIndex(i); setEditLabel(addr.label); setEditAddress(addr.address) }}
+                    <button onClick={() => { setEditingIndex(i); setEditLabel(addr.label); setEditAddress(addr.address); setEditLat(addr.lat ?? null); setEditLng(addr.lng ?? null) }}
                       className="text-blue-400">
                       <Edit2 size={15} />
                     </button>
