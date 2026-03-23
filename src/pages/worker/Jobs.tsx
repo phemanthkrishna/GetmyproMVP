@@ -123,26 +123,30 @@ export default function WorkerJobs() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-slate-400 text-sm">Welcome back,</p>
-          <h1 className="text-2xl font-black font-heading text-slate-50">{session?.name?.split(' ')[0]}</h1>
+      <div className="mb-3">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 mr-3">
+            <p className="text-slate-400 text-sm">Welcome back,</p>
+            <h1 className="text-2xl font-black font-heading text-slate-50 truncate">{session?.name?.split(' ')[0]}</h1>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <ThemeToggle />
+            {workerInfo && (
+              <button
+                onClick={toggleOnline}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                  workerInfo.is_online
+                    ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                    : 'bg-slate-700 border-slate-600 text-slate-400'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${workerInfo.is_online ? 'bg-green-400' : 'bg-slate-500'}`} />
+                {workerInfo.is_online ? 'Online' : 'Offline'}
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          {workerInfo && (
-            <button
-              onClick={toggleOnline}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                workerInfo.is_online
-                  ? 'bg-green-500/20 border-green-500/40 text-green-400'
-                  : 'bg-slate-700 border-slate-600 text-slate-400'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${workerInfo.is_online ? 'bg-green-400' : 'bg-slate-500'}`} />
-              {workerInfo.is_online ? 'Online' : 'Offline'}
-            </button>
-          )}
+        <div className="flex justify-end mt-1">
           <div className="text-right">
             <p className="text-slate-500 text-xs">Total Earned</p>
             <p className="text-green-400 font-black text-lg">{formatCurrency(totalEarned)}</p>
@@ -233,9 +237,9 @@ function JobCard({ order, onClick }: { order: Order; onClick: () => void }) {
       className="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-left btn-press w-full"
     >
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{order.service_emoji}</span>
-        <div className="flex-1">
-          <p className="font-bold text-slate-50">{order.service}</p>
+        <span className="text-2xl shrink-0">{order.service_emoji}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-slate-50 truncate">{order.service}</p>
           <p className="text-slate-500 text-xs truncate">{order.address}</p>
           <p className="text-slate-600 text-xs mt-0.5">{formatDate(order.created_at)}</p>
         </div>

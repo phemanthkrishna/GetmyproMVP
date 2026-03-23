@@ -173,10 +173,10 @@ export default function CustomerHome() {
                 onClick={() => navigate(`/customer/orders/${o.id}`)}
                 className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-left btn-press w-full flex items-center justify-between"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{o.service_emoji}</span>
-                  <div>
-                    <p className="font-semibold text-slate-50 text-sm">{o.service}</p>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <span className="text-xl shrink-0">{o.service_emoji}</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-50 text-sm truncate">{o.service}</p>
                     <p className="text-slate-500 text-xs">{formatDate(o.created_at)}</p>
                   </div>
                 </div>

@@ -41,11 +41,11 @@ export default function CustomerOrders() {
             className="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-left btn-press w-full"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{o.service_emoji}</span>
-                <div>
-                  <p className="font-bold text-slate-50">{o.service}</p>
-                  <p className="text-slate-500 text-xs">{o.id} · {formatDate(o.created_at)}</p>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-3xl shrink-0">{o.service_emoji}</span>
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-50 truncate">{o.service}</p>
+                  <p className="text-slate-500 text-xs truncate">{o.id} · {formatDate(o.created_at)}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">

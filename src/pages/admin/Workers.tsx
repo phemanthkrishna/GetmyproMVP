@@ -106,15 +106,15 @@ export default function AdminWorkers() {
         {workers.map(w => (
           <Card key={w.id}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="w-10 h-10 bg-slate-700 rounded-full overflow-hidden flex items-center justify-center font-bold text-slate-50 shrink-0">
                   {w.photo_url
                     ? <img src={w.photo_url} alt={w.name} className="w-full h-full object-cover" />
                     : w.name[0]
                   }
                 </div>
-                <div>
-                  <p className="font-bold text-slate-50">{w.name}</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-50 truncate">{w.name}</p>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-slate-500 text-xs">{w.service} · {w.phone}</p>
                     {(() => {
