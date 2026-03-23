@@ -21,6 +21,7 @@ export default function AdminWorkers() {
   const [workers, setWorkers] = useState<Worker[]>([])
   const [saving, setSaving] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [jobCounts, setJobCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetchWorkers()
@@ -35,7 +36,21 @@ export default function AdminWorkers() {
   async function fetchWorkers() {
     const { data, error } = await supabase.from('workers').select('*').order('created_at', { ascending: false })
     if (error) console.error('Failed to load workers:', error.message)
-    setWorkers((data as Worker[]) || [])
+    const list = (data as Worker[]) || []
+    setWorkers(list)
+
+    if (list.length > 0) {
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('worker_id')
+        .in('worker_id', list.map(w => w.id))
+        .eq('status', 'completed')
+      const counts: Record<string, number> = {}
+      for (const o of (orders || [])) {
+        if (o.worker_id) counts[o.worker_id] = (counts[o.worker_id] || 0) + 1
+      }
+      setJobCounts(counts)
+    }
   }
 
   async function verify(w: Worker) {
@@ -100,7 +115,18 @@ export default function AdminWorkers() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-50">{w.name}</p>
-                  <p className="text-slate-500 text-xs">{w.service} · {w.phone}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-slate-500 text-xs">{w.service} · {w.phone}</p>
+                    {(() => {
+                      const badge = [...MILESTONES].filter(m => m.job <= (jobCounts[w.id] ?? 0)).pop()
+                      if (!badge) return null
+                      return (
+                        <span className="text-xs font-bold" style={{ color: badge.color }}>
+                          {badge.icon} {badge.badge}
+                        </span>
+                      )
+                    })()}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -160,7 +186,7 @@ export default function AdminWorkers() {
                 )}
                 {/* Earned badges */}
                 {(() => {
-                  const badges = MILESTONES.filter(m => (w.completed_milestones || []).some((r: { job: number }) => r.job === m.job))
+                  const badges = MILESTONES.filter(m => m.job <= (jobCounts[w.id] ?? 0))
                   return (
                     <div>
                       <p className="text-slate-400 text-xs mb-2">Earned Badges</p>

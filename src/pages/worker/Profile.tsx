@@ -25,8 +25,8 @@ export default function WorkerProfile() {
   const [editingUpi, setEditingUpi] = useState(false)
   const [draftUpi, setDraftUpi] = useState('')
 
-  const { completedMilestonesData } = useWorkerProgress(session?.id ?? '')
-  const earnedBadges = MILESTONES.filter(m => completedMilestonesData.some(r => r.job === m.job))
+  const { completedJobs } = useWorkerProgress(session?.id ?? '')
+  const earnedBadges = MILESTONES.filter(m => m.job <= completedJobs)
 
   useEffect(() => {
     supabase.from('workers').select('*').eq('id', session?.id).single()

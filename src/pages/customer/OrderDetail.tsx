@@ -100,18 +100,22 @@ export default function CustomerOrderDetail() {
   }, [order?.status, order?.rating])
 
   useEffect(() => {
-    if (order?.worker_id) {
-      supabase.from('workers').select('photo_url, completed_milestones').eq('id', order.worker_id).maybeSingle()
-        .then(({ data, error }) => {
-          if (!error) {
-            setWorkerPhoto(data?.photo_url || null)
-            const records = (data?.completed_milestones as Array<{ job: number }>) ?? []
-            const earnedJobs = new Set(records.map(r => r.job))
-            const badge = [...MILESTONES].reverse().find(m => earnedJobs.has(m.job)) ?? null
-            setWorkerBadge(badge)
-          }
-        })
+    if (!order?.worker_id) return
+    const wid = order.worker_id
+
+    async function loadWorkerData() {
+      const [workerRes, countRes] = await Promise.all([
+        supabase.from('workers').select('photo_url').eq('id', wid).maybeSingle(),
+        supabase.from('orders').select('id', { count: 'exact', head: true })
+          .eq('worker_id', wid).eq('status', 'completed'),
+      ])
+      if (!workerRes.error) setWorkerPhoto(workerRes.data?.photo_url || null)
+      const n = countRes.count ?? 0
+      const badge = [...MILESTONES].filter(m => m.job <= n).pop() ?? null
+      setWorkerBadge(badge)
     }
+
+    loadWorkerData()
   }, [order?.worker_id])
 
   async function handleFinalPay() {
