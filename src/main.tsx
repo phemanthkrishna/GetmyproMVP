@@ -17,6 +17,7 @@ createRoot(document.getElementById('root')!).render(
       </div>
       <Toaster
         position="top-center"
+        offset={{ top: 'max(16px, env(safe-area-inset-top, 16px))' } as any}
         toastOptions={{
           style: {
             background: 'var(--surface)',

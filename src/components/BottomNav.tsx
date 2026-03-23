@@ -10,7 +10,10 @@ interface NavItem {
 
 export function BottomNav({ items }: { items: NavItem[] }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[var(--surface)] border-t border-[var(--border)] flex z-50">
+    <nav
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[var(--surface)] border-t border-[var(--border)] flex z-50"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
       {items.map(({ to, icon: Icon, label, activeColor }) => (
         <NavLink
           key={to}

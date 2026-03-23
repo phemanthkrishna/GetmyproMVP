@@ -76,7 +76,15 @@ body {
   background-color: var(--bg);
   color: var(--text);
   overflow-x: hidden;
+  /* Prevent bounce/rubber-band scroll revealing bg on iOS */
+  overscroll-behavior-y: none;
   line-height: 1.6;          /* PDF: Body 1.5–1.7 */
+}
+
+/* Full-screen pages (login/landing) need top+bottom safe area padding */
+.safe-area-page {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -98,10 +106,13 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--bg);
   position: relative;
   overflow-x: hidden;
+  /* Push content below notch/status-bar on iOS */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .page-content {
-  padding-bottom: 80px;
+  /* 80px nav height + iOS home-indicator safe area */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   min-height: 100dvh;
 }
 
@@ -165,11 +176,13 @@ h1, h2, h3, h4, h5, h6 {
   transform: scale(0.96);
 }
 
-/* ─── OTP input ──────────────────────────────────────────────────────────── */
+/* ─── OTP input — fluid so 6 digits never overflow on any mobile width ─── */
 .otp-digit {
-  width: 48px;
-  height: 56px;
-  font-size: 24px;
+  flex: 1;                        /* fill available space equally        */
+  max-width: 52px;                /* cap on wide screens                 */
+  width: auto;                    /* override any inherited fixed width  */
+  height: clamp(44px, 14vw, 56px);
+  font-size: clamp(16px, 5.5vw, 24px);
   font-weight: 700;
   text-align: center;
   background: var(--surface);
@@ -177,7 +190,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 12px;
   color: var(--text);
   outline: none;
-  transition: border-color 200ms ease-out;  /* PDF: 200ms small */
+  transition: border-color 200ms ease-out;
 }
 .otp-digit:focus {
   border-color: var(--brand);
