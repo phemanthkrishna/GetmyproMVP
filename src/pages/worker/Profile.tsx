@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { BottomNav } from '../../components/BottomNav'
 import { Briefcase, DollarSign, User, LogOut, Edit2, Check, X, History, Trophy } from 'lucide-react'
 import { SERVICES } from '../../constants'
+import { useWorkerProgress, MILESTONES } from '../../hooks/useWorkerProgress'
 import type { Worker } from '../../types'
 
 const NAV = [
@@ -23,6 +24,9 @@ export default function WorkerProfile() {
   const [savingServices, setSavingServices] = useState(false)
   const [editingUpi, setEditingUpi] = useState(false)
   const [draftUpi, setDraftUpi] = useState('')
+
+  const { completedMilestonesData } = useWorkerProgress(session?.id ?? '')
+  const earnedBadges = MILESTONES.filter(m => completedMilestonesData.some(r => r.job === m.job))
 
   useEffect(() => {
     supabase.from('workers').select('*').eq('id', session?.id).single()
@@ -127,6 +131,25 @@ export default function WorkerProfile() {
         />
         <Row label="Member since" value={worker?.created_at ? new Date(worker.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
       </div>
+
+      {/* Earned Badges */}
+      {earnedBadges.length > 0 && (
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">
+          <p className="text-slate-50 font-semibold text-sm mb-3">My Badges</p>
+          <div className="flex flex-wrap gap-2">
+            {earnedBadges.map(m => (
+              <div
+                key={m.job}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: m.color + '20', border: `1px solid ${m.color}50` }}
+              >
+                <span style={{ fontSize: 16 }}>{m.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: m.color }}>{m.badge}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* UPI ID */}
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4">

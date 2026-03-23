@@ -39,6 +39,7 @@ export interface Worker {
   service_categories: string[]
   is_online: boolean
   is_active: boolean
+  completed_milestones?: Array<{ job: number; earnedAt: string }>
   created_at: string
 }
 

@@ -6,6 +6,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { BottomNav } from '../../components/BottomNav'
 import { ClipboardList, Users, DollarSign, ChevronDown, ChevronUp, Package, Store } from 'lucide-react'
+import { MILESTONES } from '../../hooks/useWorkerProgress'
 import type { Worker } from '../../types'
 
 const NAV = [
@@ -116,7 +117,7 @@ export default function AdminWorkers() {
                     {w.verified ? '✓ Verified' : '⏳ Pending'}
                   </span>
                 )}
-                {w.aadhaar_url && (
+                {(w.aadhaar_url || w.aadhaar_front_url || w.aadhaar_back_url || (w.completed_milestones?.length ?? 0) > 0) && (
                   <button
                     onClick={() => setExpanded(expanded === w.id ? null : w.id)}
                     className="text-slate-500"
@@ -127,13 +128,59 @@ export default function AdminWorkers() {
               </div>
             </div>
 
-            {expanded === w.id && w.aadhaar_url && (
-              <div className="mt-3 border-t border-slate-700 pt-3">
-                <p className="text-slate-400 text-xs mb-1">Aadhaar Number</p>
-                <p className="text-slate-50 font-mono text-lg tracking-widest">
-                  {`XXXX XXXX ${w.aadhaar_url.replace(/\s/g, '').slice(-4)}`}
-                </p>
-                <p className="text-slate-600 text-xs mt-1">Only last 4 digits shown for security</p>
+            {expanded === w.id && (
+              <div className="mt-3 border-t border-slate-700 pt-3 flex flex-col gap-3">
+                {/* Aadhaar images (new flow) */}
+                {(w.aadhaar_front_url || w.aadhaar_back_url) && (
+                  <div>
+                    <p className="text-slate-400 text-xs mb-2">Aadhaar Documents</p>
+                    <div className="flex gap-2">
+                      {w.aadhaar_front_url && (
+                        <a href={w.aadhaar_front_url} target="_blank" rel="noreferrer" className="flex-1 bg-slate-700 rounded-xl overflow-hidden">
+                          <img src={w.aadhaar_front_url} alt="Front" className="w-full h-24 object-cover" />
+                          <p className="text-slate-400 text-xs text-center py-1">Front</p>
+                        </a>
+                      )}
+                      {w.aadhaar_back_url && (
+                        <a href={w.aadhaar_back_url} target="_blank" rel="noreferrer" className="flex-1 bg-slate-700 rounded-xl overflow-hidden">
+                          <img src={w.aadhaar_back_url} alt="Back" className="w-full h-24 object-cover" />
+                          <p className="text-slate-400 text-xs text-center py-1">Back</p>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Aadhaar number (legacy flow) */}
+                {w.aadhaar_url && !w.aadhaar_front_url && (
+                  <div>
+                    <p className="text-slate-400 text-xs mb-1">Aadhaar Number</p>
+                    <p className="text-slate-50 font-mono text-lg tracking-widest">
+                      {`XXXX XXXX ${w.aadhaar_url.replace(/\s/g, '').slice(-4)}`}
+                    </p>
+                    <p className="text-slate-600 text-xs mt-1">Only last 4 digits shown for security</p>
+                  </div>
+                )}
+                {/* Earned badges */}
+                {(() => {
+                  const badges = MILESTONES.filter(m => (w.completed_milestones || []).some((r: { job: number }) => r.job === m.job))
+                  if (badges.length === 0) return null
+                  return (
+                    <div>
+                      <p className="text-slate-400 text-xs mb-2">Earned Badges</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {badges.map(m => (
+                          <span
+                            key={m.job}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                            style={{ background: m.color + '20', color: m.color, border: `1px solid ${m.color}50` }}
+                          >
+                            {m.icon} {m.badge}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
 
