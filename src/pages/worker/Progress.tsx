@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 import { BottomNav } from '../../components/BottomNav'
 import { useWorkerProgress, MILESTONES } from '../../hooks/useWorkerProgress'
 import type { MilestoneRecord } from '../../hooks/useWorkerProgress'
@@ -35,11 +37,48 @@ export default function WorkerProgress() {
 
   const [animated, setAnimated] = useState(false)
   const [badgeModal, setBadgeModal] = useState<BadgeModal | null>(null)
+  const [claimStatus, setClaimStatus] = useState<Record<number, 'pending' | 'paid'>>({})
+  const [claimingJob, setClaimingJob] = useState<number | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setAnimated(true), 120)
     return () => clearTimeout(t)
   }, [])
+
+  useEffect(() => {
+    if (!workerId) return
+    supabase
+      .from('bonus_claims')
+      .select('milestone_job, status')
+      .eq('worker_id', workerId)
+      .then(({ data }) => {
+        const map: Record<number, 'pending' | 'paid'> = {}
+        ;(data || []).forEach((c: { milestone_job: number; status: string }) => {
+          map[c.milestone_job] = c.status as 'pending' | 'paid'
+        })
+        setClaimStatus(map)
+      })
+  }, [workerId])
+
+  async function collectBonus(m: typeof MILESTONES[number]) {
+    if (claimStatus[m.job]) return
+    setClaimingJob(m.job)
+    const { error } = await supabase.from('bonus_claims').insert({
+      worker_id: workerId,
+      worker_name: session?.name ?? '',
+      milestone_job: m.job,
+      milestone_badge: m.badge,
+      milestone_icon: m.icon,
+      amount: m.bonus,
+    })
+    setClaimingJob(null)
+    if (error && !error.message.includes('unique')) {
+      toast.error('Could not submit claim, please try again')
+      return
+    }
+    setClaimStatus(prev => ({ ...prev, [m.job]: 'pending' }))
+    toast.success('Bonus will be credited to your account in 24 hours')
+  }
 
   const fmt = (n: number) => `₹${n.toLocaleString('en-IN')}`
 
@@ -256,6 +295,30 @@ export default function WorkerProgress() {
                         <p style={{ fontSize: 11, color: '#10B981', marginTop: 1 }}>
                           {fmt(m.bonus)} bonus earned
                         </p>
+                        {claimStatus[m.job] === 'paid' ? (
+                          <p style={{ fontSize: 11, color: '#10B981', fontWeight: 700, marginTop: 5 }}>✓ Bonus Credited</p>
+                        ) : claimStatus[m.job] === 'pending' ? (
+                          <p style={{ fontSize: 11, color: '#F59E0B', marginTop: 5 }}>⏳ Credit pending (24 hrs)</p>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); collectBonus(m) }}
+                            disabled={claimingJob === m.job}
+                            style={{
+                              marginTop: 6,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: '#fff',
+                              background: '#10B981',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '4px 10px',
+                              cursor: claimingJob === m.job ? 'default' : 'pointer',
+                              opacity: claimingJob === m.job ? 0.6 : 1,
+                            }}
+                          >
+                            {claimingJob === m.job ? 'Requesting…' : 'Collect Bonus'}
+                          </button>
+                        )}
                       </>
                     )}
 

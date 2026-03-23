@@ -103,6 +103,19 @@ export interface StoredSession {
   role: Role
 }
 
+export interface BonusClaim {
+  id: string
+  worker_id: string
+  worker_name: string
+  milestone_job: number
+  milestone_badge: string
+  milestone_icon: string
+  amount: number
+  status: 'pending' | 'paid'
+  created_at: string
+  paid_at?: string
+}
+
 export interface StoreOrder {
   id: string
   customer_name: string

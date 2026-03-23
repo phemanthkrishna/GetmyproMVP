@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../hooks/useOrders'
+import { supabase } from '../../lib/supabase'
 import { BottomNav } from '../../components/BottomNav'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { Briefcase, DollarSign, User, History, Trophy } from 'lucide-react'
+import type { BonusClaim } from '../../types'
 
 const NAV = [
   { to: '/worker',          icon: Briefcase,  label: 'Jobs'     },
@@ -17,6 +20,17 @@ const WORKER_VISIT = 100
 export default function WorkerEarnings() {
   const { session } = useAuth()
   const { orders } = useOrders({ worker_id: session?.id || '' })
+  const [bonusClaims, setBonusClaims] = useState<BonusClaim[]>([])
+
+  useEffect(() => {
+    if (!session?.id) return
+    supabase
+      .from('bonus_claims')
+      .select('*')
+      .eq('worker_id', session.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setBonusClaims((data as BonusClaim[]) || []))
+  }, [session?.id])
 
   const completed      = orders.filter(o => o.status === 'completed')
   const cancelledVisit = orders.filter(o => o.status === 'cancelled' && (o.worker_cancellation_pay || 0) > 0)
@@ -104,6 +118,29 @@ export default function WorkerEarnings() {
                   <span className="text-orange-400 font-bold text-sm block">{formatCurrency(o.worker_cancellation_pay || 0)}</span>
                   <span className={`text-xs ${o.cancellation_pay_settled ? 'text-green-400' : 'text-amber-400'}`}>
                     {o.cancellation_pay_settled ? '✓ Paid' : '⏳ Pending'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Milestone Bonuses */}
+      {bonusClaims.length > 0 && (
+        <>
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Milestone Bonuses</h2>
+          <div className="flex flex-col gap-2 mb-6">
+            {bonusClaims.map(c => (
+              <div key={c.id} className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex items-center justify-between">
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-slate-50 text-sm font-semibold truncate">{c.milestone_icon} {c.milestone_badge}</p>
+                  <p className="text-slate-500 text-xs">{formatDate(c.created_at)}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-purple-400 font-bold text-sm block">{formatCurrency(c.amount)}</span>
+                  <span className={`text-xs ${c.status === 'paid' ? 'text-green-400' : 'text-amber-400'}`}>
+                    {c.status === 'paid' ? '✓ Credited' : '⏳ Pending'}
                   </span>
                 </div>
               </div>

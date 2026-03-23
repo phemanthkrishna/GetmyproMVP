@@ -4,7 +4,7 @@ import { BottomNav } from '../../components/BottomNav'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { ClipboardList, Users, DollarSign, Package, Store } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Order } from '../../types'
+import type { Order, BonusClaim } from '../../types'
 
 const NAV = [
   { to: '/admin', icon: ClipboardList, label: 'Orders' },
@@ -20,16 +20,38 @@ const WORKER_VISIT = 100  // ₹100 visiting charge from each booking → to wor
 export default function AdminPayments() {
   const [orders, setOrders] = useState<Order[]>([])
   const [workerUpi, setWorkerUpi] = useState<Record<string, string>>({})
+  const [bonusClaims, setBonusClaims] = useState<BonusClaim[]>([])
 
   useEffect(() => {
     fetchOrders()
+    fetchBonusClaims()
     const channel = supabase
       .channel('admin-payments-orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => fetchOrders())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bonus_claims' }, () => fetchBonusClaims())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bonus_claims' }, () => fetchBonusClaims())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
+
+  async function fetchBonusClaims() {
+    const { data } = await supabase
+      .from('bonus_claims')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setBonusClaims((data as BonusClaim[]) || [])
+  }
+
+  async function markBonusPaid(c: BonusClaim) {
+    const { error } = await supabase
+      .from('bonus_claims')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('id', c.id)
+    if (error) { toast.error('Failed to mark paid, please try again'); return }
+    toast.success(`Bonus paid — ${c.worker_name} ${formatCurrency(c.amount)}`)
+    fetchBonusClaims()
+  }
 
   interface WorkerUpi { id: string; upi_id: string | null }
 
@@ -197,6 +219,53 @@ export default function AdminPayments() {
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-center mb-6">
           <p className="text-green-400 font-semibold text-sm">All worker payouts settled ✓</p>
         </div>
+      )}
+
+      {/* ── Pending: Milestone Bonus Claims ── */}
+      {bonusClaims.filter(c => c.status === 'pending').length > 0 && (
+        <>
+          <p className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-3">Pending — Milestone Bonus Claims</p>
+          <div className="flex flex-col gap-3 mb-6">
+            {bonusClaims.filter(c => c.status === 'pending').map(c => (
+              <div key={c.id} className="bg-slate-800 border border-purple-500/20 rounded-xl p-3 flex items-center justify-between">
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-slate-50 text-sm font-semibold truncate">{c.worker_name}</p>
+                  <p className="text-slate-500 text-xs truncate">{c.milestone_icon} {c.milestone_badge} · {formatDate(c.created_at)}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-purple-400 font-black text-base">{formatCurrency(c.amount)}</span>
+                  <button
+                    onClick={() => markBonusPaid(c)}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-bold"
+                  >
+                    Mark Paid
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Paid Bonus History ── */}
+      {bonusClaims.filter(c => c.status === 'paid').length > 0 && (
+        <>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Bonus Claims — Paid</p>
+          <div className="flex flex-col gap-2 mb-6">
+            {bonusClaims.filter(c => c.status === 'paid').map(c => (
+              <div key={c.id} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 flex items-center justify-between">
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-slate-300 text-sm font-semibold truncate">{c.worker_name}</p>
+                  <p className="text-slate-500 text-xs truncate">{c.milestone_icon} {c.milestone_badge} · {formatDate(c.created_at)}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-slate-400 text-sm font-bold">{formatCurrency(c.amount)}</p>
+                  <p className="text-green-400 text-xs">✓ Paid</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* ── Settled History ── */}
