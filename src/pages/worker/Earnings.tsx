@@ -2,13 +2,14 @@ import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../hooks/useOrders'
 import { BottomNav } from '../../components/BottomNav'
 import { formatCurrency, formatDate } from '../../lib/utils'
-import { Briefcase, DollarSign, User, History } from 'lucide-react'
+import { Briefcase, DollarSign, User, History, Trophy } from 'lucide-react'
 
 const NAV = [
-  { to: '/worker', icon: Briefcase, label: 'Jobs' },
+  { to: '/worker',          icon: Briefcase,  label: 'Jobs'     },
+  { to: '/worker/progress', icon: Trophy,     label: 'Progress', activeColor: '#F47820' },
   { to: '/worker/earnings', icon: DollarSign, label: 'Earnings' },
-  { to: '/worker/history', icon: History, label: 'History' },
-  { to: '/worker/profile', icon: User, label: 'Profile' },
+  { to: '/worker/history',  icon: History,    label: 'History'  },
+  { to: '/worker/profile',  icon: User,       label: 'Profile'  },
 ]
 
 const WORKER_VISIT = 100

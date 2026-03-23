@@ -7,16 +7,18 @@ import { supabase } from '../../lib/supabase'
 import { StatusBadge } from '../../components/StatusBadge'
 import { BottomNav } from '../../components/BottomNav'
 import { ThemeToggle } from '../../components/ThemeToggle'
-import { formatDate } from '../../lib/utils'
-import { Briefcase, DollarSign, User, History } from 'lucide-react'
-import { formatCurrency } from '../../lib/utils'
+import { BadgeUnlockOverlay } from '../../components/BadgeUnlockOverlay'
+import { useWorkerProgress } from '../../hooks/useWorkerProgress'
+import { formatDate, formatCurrency } from '../../lib/utils'
+import { Briefcase, DollarSign, User, History, Trophy } from 'lucide-react'
 import type { Worker, Order } from '../../types'
 
 const NAV = [
-  { to: '/worker', icon: Briefcase, label: 'Jobs' },
+  { to: '/worker',          icon: Briefcase,  label: 'Jobs'     },
+  { to: '/worker/progress', icon: Trophy,     label: 'Progress', activeColor: '#F47820' },
   { to: '/worker/earnings', icon: DollarSign, label: 'Earnings' },
-  { to: '/worker/history', icon: History, label: 'History' },
-  { to: '/worker/profile', icon: User, label: 'Profile' },
+  { to: '/worker/history',  icon: History,    label: 'History'  },
+  { to: '/worker/profile',  icon: User,       label: 'Profile'  },
 ]
 
 export default function WorkerJobs() {
@@ -31,8 +33,23 @@ export default function WorkerJobs() {
     .filter(o => o.status === 'completed')
     .reduce((sum, o) => sum + (o.quote_labour || 0), 0)
 
-  // Available jobs (unassigned, booked)
   const [available, setAvailable] = useState<typeof myJobs>([])
+
+  // Progress data for mini bar + badge unlock overlay
+  const {
+    completedJobs,
+    currentBadge,
+    nextMilestone,
+    progressToNext,
+    justUnlocked,
+    clearJustUnlocked,
+  } = useWorkerProgress(session?.id ?? '')
+
+  const [barAnimated, setBarAnimated] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setBarAnimated(true), 300)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     supabase
@@ -44,7 +61,6 @@ export default function WorkerJobs() {
 
     fetchAvailable()
 
-    // Real-time: new booked orders (INSERT and UPDATE)
     const channel = supabase
       .channel('available-jobs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => fetchAvailable())
@@ -72,7 +88,6 @@ export default function WorkerJobs() {
     toast.success(newVal ? 'You are now Online' : 'You are now Offline')
   }
 
-  // Filter available jobs by service_categories
   const filteredAvailable = available.filter(o => {
     const cats = workerInfo?.service_categories
     if (!cats || cats.length === 0) return true
@@ -83,6 +98,16 @@ export default function WorkerJobs() {
 
   return (
     <div className="page-content px-5 py-6">
+
+      {/* Badge unlock overlay */}
+      {justUnlocked && (
+        <BadgeUnlockOverlay
+          milestone={justUnlocked}
+          completedJobs={completedJobs}
+          onClose={clearJustUnlocked}
+        />
+      )}
+
       {/* Pending verification banner */}
       {workerInfo && !isVerified && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-amber-400 text-sm">
@@ -98,14 +123,13 @@ export default function WorkerJobs() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-slate-400 text-sm">Welcome back,</p>
           <h1 className="text-2xl font-black font-heading text-slate-50">{session?.name?.split(' ')[0]}</h1>
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          {/* Online/Offline toggle */}
           {workerInfo && (
             <button
               onClick={toggleOnline}
@@ -126,6 +150,39 @@ export default function WorkerJobs() {
         </div>
       </div>
 
+      {/* ── Mini Progress Bar ──────────────────────────────────────── */}
+      <button
+        onClick={() => navigate('/worker/progress')}
+        className="-mx-5 mb-4 flex items-center gap-2 px-5 w-[calc(100%+40px)] text-left"
+        style={{ height: 48, background: '#FFF7ED', borderBottom: '1px solid #FDE8C8', border: 'none', cursor: 'pointer' }}
+      >
+        <span style={{ fontSize: 20, flexShrink: 0 }}>{currentBadge?.icon ?? '🔧'}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#92400E', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {currentBadge?.badge ?? 'Start!'}
+        </span>
+        <div style={{ flex: 1, height: 6, borderRadius: 20, background: '#E5E7EB', overflow: 'hidden', margin: '0 4px' }}>
+          <div
+            style={{
+              height: '100%',
+              borderRadius: 20,
+              background: '#F47820',
+              width: barAnimated ? `${progressToNext}%` : '0%',
+              transition: 'width 1s ease',
+              minWidth: progressToNext > 0 ? 4 : 0,
+            }}
+          />
+        </div>
+        {nextMilestone ? (
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#F47820', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            {nextMilestone.job - completedJobs} to {nextMilestone.badge} →
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#8B5CF6', flexShrink: 0 }}>
+            👑 Legend!
+          </span>
+        )}
+      </button>
+
       {/* My Active Jobs */}
       {activeJobs.length > 0 && (
         <>
@@ -138,14 +195,14 @@ export default function WorkerJobs() {
         </>
       )}
 
-      {/* Busy banner — worker has an active job */}
+      {/* Busy banner */}
       {isBusyOnJob && (
         <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-4 text-orange-400 text-sm">
           🔒 You're currently on a job — complete it before accepting new requests
         </div>
       )}
 
-      {/* Available Jobs — only for verified + online workers with no active job */}
+      {/* Available Jobs */}
       {isVerified && workerInfo?.is_online && !isBusyOnJob && (
         <>
           <h2 className="text-base font-bold text-slate-300 mb-3">Available Jobs</h2>

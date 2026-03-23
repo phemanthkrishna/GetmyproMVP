@@ -193,6 +193,24 @@ h1, h2, h3, h4, h5, h6 {
 }
 .shake { animation: shake 0.4s ease-out; }
 
+/* ─── Worker Progress Animations ─────────────────────────────── */
+@keyframes badge-bounce {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+  80%  { transform: scale(0.9) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes confetti-pop {
+  0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx,60px),var(--ty,-60px)) rotate(720deg) scale(0); opacity: 0; }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.75); }
+}
+
 @keyframes pulse-border {
   0%, 100% { border-color: rgba(232, 85, 32, 0.4); }
   50% { border-color: rgba(232, 85, 32, 1); }

@@ -3,15 +3,16 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { toast } from 'sonner'
 import { BottomNav } from '../../components/BottomNav'
-import { Briefcase, DollarSign, User, LogOut, Edit2, Check, X, History } from 'lucide-react'
+import { Briefcase, DollarSign, User, LogOut, Edit2, Check, X, History, Trophy } from 'lucide-react'
 import { SERVICES } from '../../constants'
 import type { Worker } from '../../types'
 
 const NAV = [
-  { to: '/worker', icon: Briefcase, label: 'Jobs' },
+  { to: '/worker',          icon: Briefcase,  label: 'Jobs'     },
+  { to: '/worker/progress', icon: Trophy,     label: 'Progress', activeColor: '#F47820' },
   { to: '/worker/earnings', icon: DollarSign, label: 'Earnings' },
-  { to: '/worker/history', icon: History, label: 'History' },
-  { to: '/worker/profile', icon: User, label: 'Profile' },
+  { to: '/worker/history',  icon: History,    label: 'History'  },
+  { to: '/worker/profile',  icon: User,       label: 'Profile'  },
 ]
 
 export default function WorkerProfile() {

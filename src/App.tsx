@@ -21,6 +21,7 @@ import WorkerJobs from './pages/worker/Jobs'
 import WorkerEarnings from './pages/worker/Earnings'
 import WorkerProfile from './pages/worker/Profile'
 import WorkerHistory from './pages/worker/WorkHistory'
+import WorkerProgress from './pages/worker/Progress'
 import JobDetail from './pages/worker/JobDetail'
 
 // Store
@@ -77,6 +78,7 @@ export default function App() {
       <Route path="/worker/register" element={<WorkerRegister />} />
       <Route path="/worker" element={<RequireAuth role="worker"><WorkerJobs /></RequireAuth>} />
       <Route path="/worker/earnings" element={<RequireAuth role="worker"><WorkerEarnings /></RequireAuth>} />
+      <Route path="/worker/progress" element={<RequireAuth role="worker"><WorkerProgress /></RequireAuth>} />
       <Route path="/worker/history" element={<RequireAuth role="worker"><WorkerHistory /></RequireAuth>} />
       <Route path="/worker/profile" element={<RequireAuth role="worker"><WorkerProfile /></RequireAuth>} />
       <Route path="/worker/job/:orderId" element={<RequireAuth role="worker"><JobDetail /></RequireAuth>} />
