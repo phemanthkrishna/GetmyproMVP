@@ -185,7 +185,7 @@ export default function AdminOrderDetail() {
           <Row label="Name" value={order.customer_name} />
           <div className="flex justify-between gap-4">
             <span className="text-slate-500">Phone</span>
-            <a href={`tel:${order.customer_phone}`} className="text-blue-400 flex items-center gap-1">
+            <a href={`tel:${order.customer_phone}`} className="text-blue-400 flex items-center gap-1 shrink-0">
               <Phone size={12} /> {order.customer_phone}
             </a>
           </div>
@@ -243,7 +243,7 @@ export default function AdminOrderDetail() {
           <Row label="Name" value={order.worker_name} />
           <div className="flex justify-between gap-4 mt-2 text-sm">
             <span className="text-slate-500">Phone</span>
-            <a href={`tel:${order.worker_phone}`} className="text-blue-400 flex items-center gap-1">
+            <a href={`tel:${order.worker_phone}`} className="text-blue-400 flex items-center gap-1 shrink-0">
               <Phone size={12} /> {order.worker_phone}
             </a>
           </div>

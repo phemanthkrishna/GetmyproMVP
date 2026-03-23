@@ -149,8 +149,8 @@ export default function StoreOrderDetail() {
           <p className="font-black text-lg">{order.service_emoji} {order.service}</p>
           <p className="text-blue-100 text-sm mt-1">{order.address}</p>
           {order.worker_name && (
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-blue-100 text-sm font-semibold">{order.worker_name}</p>
+            <div className="flex items-center justify-between mt-2 gap-2">
+              <p className="text-blue-100 text-sm font-semibold truncate min-w-0">{order.worker_name}</p>
               <a
                 href={`tel:${order.worker_phone}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 border border-white/30 text-white text-xs font-bold rounded-xl"
@@ -216,9 +216,9 @@ export default function StoreOrderDetail() {
 
             {order.quote_materials?.map((mat, i) => (
               <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-3 mb-2 flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full border-2 border-slate-600 flex-shrink-0" />
-                <div>
-                  <p className="text-slate-50 font-semibold text-sm">{mat.name}</p>
+                <div className="w-6 h-6 rounded-full border-2 border-slate-600 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-slate-50 font-semibold text-sm truncate">{mat.name}</p>
                   <p className="text-slate-500 text-xs">{mat.qty} {mat.unit}{mat.price != null ? ` · ₹${mat.price}` : ''}</p>
                 </div>
               </div>

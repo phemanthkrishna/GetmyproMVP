@@ -130,9 +130,9 @@ export default function AdminPayments() {
           <div className="flex flex-col gap-3 mb-6">
             {pendingLabour.map(o => (
               <div key={o.id} className="bg-slate-800 border border-amber-500/20 rounded-xl p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-slate-50 text-sm font-semibold">{o.worker_name}</p>
-                  <p className="text-slate-500 text-xs">{o.service} · {o.id}</p>
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-slate-50 text-sm font-semibold truncate">{o.worker_name}</p>
+                  <p className="text-slate-500 text-xs truncate">{o.service} · {o.id}</p>
                   <p className="text-slate-600 text-xs">{formatDate(o.created_at)}</p>
                   <div className="flex gap-3 mt-1 text-xs">
                     <span className="text-slate-400">Labour: {formatCurrency(o.quote_labour || 0)}</span>
@@ -167,9 +167,9 @@ export default function AdminPayments() {
           <div className="flex flex-col gap-3 mb-6">
             {pendingCancel.map(o => (
               <div key={o.id} className="bg-slate-800 border border-red-500/20 rounded-xl p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-slate-50 text-sm font-semibold">{o.worker_name || '—'}</p>
-                  <p className="text-slate-500 text-xs">{o.service} · {o.id}</p>
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-slate-50 text-sm font-semibold truncate">{o.worker_name || '—'}</p>
+                  <p className="text-slate-500 text-xs truncate">{o.service} · {o.id}</p>
                   <p className="text-red-400 text-xs">Customer cancelled after quote</p>
                   {o.worker_id && workerUpi[o.worker_id] && (
                     <p className="text-blue-400 text-xs font-mono mt-1">UPI: {workerUpi[o.worker_id]}</p>

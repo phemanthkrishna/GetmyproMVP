@@ -69,8 +69,8 @@ export default function WorkerEarnings() {
         <div className="flex flex-col gap-2 mb-6">
           {completed.map(o => (
             <div key={o.id} className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <p className="text-slate-50 text-sm font-semibold">{o.service_emoji} {o.service}</p>
+              <div className="flex-1 min-w-0 mr-3">
+                <p className="text-slate-50 text-sm font-semibold truncate">{o.service_emoji} {o.service}</p>
                 <p className="text-slate-500 text-xs">{formatDate(o.created_at)}</p>
                 <div className="flex gap-2 mt-0.5 text-xs text-slate-500">
                   <span>Labour: {formatCurrency(o.quote_labour || 0)}</span>
@@ -95,8 +95,8 @@ export default function WorkerEarnings() {
           <div className="flex flex-col gap-2">
             {cancelledVisit.map(o => (
               <div key={o.id} className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-slate-50 text-sm font-semibold">{o.service_emoji} {o.service}</p>
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-slate-50 text-sm font-semibold truncate">{o.service_emoji} {o.service}</p>
                   <p className="text-slate-500 text-xs">{formatDate(o.created_at)}</p>
                   <p className="text-red-400 text-xs">Customer cancelled after quote</p>
                 </div>

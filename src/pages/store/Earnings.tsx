@@ -75,11 +75,11 @@ export default function StoreEarnings() {
         <div className="flex flex-col divide-y divide-slate-800">
           {orders.map(o => (
             <div key={o.id} className="flex items-center justify-between py-3">
-              <div>
-                <p className="text-slate-50 text-sm font-semibold">{o.service_emoji} {o.service}</p>
+              <div className="flex-1 min-w-0 mr-3">
+                <p className="text-slate-50 text-sm font-semibold truncate">{o.service_emoji} {o.service}</p>
                 <p className="text-slate-500 text-xs">{new Date(o.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
               </div>
-              <p className="text-green-400 font-bold">{fmt(o.store_earnings || 0)}</p>
+              <p className="text-green-400 font-bold shrink-0">{fmt(o.store_earnings || 0)}</p>
             </div>
           ))}
         </div>

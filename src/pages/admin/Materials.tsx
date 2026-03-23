@@ -192,12 +192,12 @@ function MaterialCard({
     <Card>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="font-bold text-slate-50 text-sm">{order.service_emoji} {order.service}</p>
-          <p className="text-slate-500 text-xs">{order.id} · {order.worker_name || '—'}</p>
+        <div className="flex-1 min-w-0 mr-3">
+          <p className="font-bold text-slate-50 text-sm truncate">{order.service_emoji} {order.service}</p>
+          <p className="text-slate-500 text-xs truncate">{order.id} · {order.worker_name || '—'}</p>
           <p className="text-slate-600 text-xs">{formatDate(order.created_at)}</p>
         </div>
-        <p className="text-orange-400 font-black text-base">{formatCurrency(cost)}</p>
+        <p className="text-orange-400 font-black text-base shrink-0">{formatCurrency(cost)}</p>
       </div>
 
       {/* Materials list */}

@@ -91,13 +91,13 @@ export default function StoreDashboard() {
                     </div>
                   )}
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0 mr-2">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{order.service_emoji}</span>
-                        <span className="font-bold text-slate-50 text-sm">{order.service}</span>
+                        <span className="text-lg shrink-0">{order.service_emoji}</span>
+                        <span className="font-bold text-slate-50 text-sm truncate">{order.service}</span>
                       </div>
-                      <p className="text-slate-500 text-xs">{order.address.slice(0, 50)}{order.address.length > 50 ? '…' : ''}</p>
-                      {order.worker_name && <p className="text-slate-400 text-xs mt-1">Worker: {order.worker_name}</p>}
+                      <p className="text-slate-500 text-xs truncate">{order.address}</p>
+                      {order.worker_name && <p className="text-slate-400 text-xs mt-1 truncate">Worker: {order.worker_name}</p>}
                       {order.store_earnings != null && (
                         <p className="text-green-400 text-xs font-bold mt-1">You earn: ₹{order.store_earnings.toFixed(2)}</p>
                       )}
@@ -124,16 +124,16 @@ export default function StoreDashboard() {
                 onClick={() => navigate('/store/order/' + order.id)}
                 className="w-full text-left bg-slate-900/50 border border-slate-800 rounded-2xl p-3 flex items-center justify-between"
               >
-                <div>
+                <div className="flex-1 min-w-0 mr-2">
                   <div className="flex items-center gap-2">
-                    <span>{order.service_emoji}</span>
-                    <span className="text-slate-300 text-sm font-semibold">{order.service}</span>
+                    <span className="shrink-0">{order.service_emoji}</span>
+                    <span className="text-slate-300 text-sm font-semibold truncate">{order.service}</span>
                   </div>
                   {order.store_earnings != null && (
                     <p className="text-green-400 text-xs font-semibold mt-0.5">₹{order.store_earnings.toFixed(2)} earned</p>
                   )}
                 </div>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-green-400 bg-green-500/10">Collected ✓</span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full text-green-400 bg-green-500/10 shrink-0">Collected ✓</span>
               </button>
             ))}
           </div>
