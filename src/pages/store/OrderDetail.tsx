@@ -149,9 +149,15 @@ export default function StoreOrderDetail() {
           <p className="font-black text-lg">{order.service_emoji} {order.service}</p>
           <p className="text-blue-100 text-sm mt-1">{order.address}</p>
           {order.worker_name && (
-            <a href={`tel:${order.worker_phone}`} className="flex items-center gap-2 mt-2 text-white font-semibold text-sm">
-              <Phone size={14} /> {order.worker_name} · {order.worker_phone}
-            </a>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-blue-100 text-sm font-semibold">{order.worker_name}</p>
+              <a
+                href={`tel:${order.worker_phone}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 border border-white/30 text-white text-xs font-bold rounded-xl"
+              >
+                <Phone size={13} /> Call Worker
+              </a>
+            </div>
           )}
         </div>
 

@@ -11,7 +11,7 @@ import { OtpInput } from '../../components/OtpInput'
 import { StatusBadge } from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
 import { formatDate, formatCurrency } from '../../lib/utils'
-import { ArrowLeft, Upload, Plus, X, Navigation } from 'lucide-react'
+import { ArrowLeft, Upload, Plus, X, Navigation, Phone } from 'lucide-react'
 import type { QuoteMaterial } from '../../types'
 
 const UNITS = ['nos', 'm', 'kg', 'L', 'box', 'pkt']
@@ -255,7 +255,18 @@ export default function JobDetail() {
       <Card className="mb-4">
         <div className="flex flex-col gap-2 text-sm">
           <Row label="Address" value={order.address} />
-          <Row label="Customer" value={`${order.customer_name} · ${order.customer_phone}`} />
+          <div className="flex items-center justify-between gap-2 py-0.5">
+            <span className="text-slate-500 shrink-0">Customer</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-slate-50 font-semibold truncate">{order.customer_name}</span>
+              <a
+                href={`tel:${order.customer_phone}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-xl shrink-0"
+              >
+                <Phone size={13} /> Call
+              </a>
+            </div>
+          </div>
           {order.problem_description && <Row label="Problem" value={order.problem_description} />}
           <Row label="Date" value={formatDate(order.created_at)} />
         </div>
@@ -425,9 +436,14 @@ export default function JobDetail() {
                   <span className="text-slate-500">Store</span>
                   <span className="text-slate-50 font-semibold">{order.mat_store_name}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-500">Contact</span>
-                  <a href={`tel:${order.mat_store_contact}`} className="text-blue-400">{order.mat_store_contact}</a>
+                  <a
+                    href={`tel:${order.mat_store_contact}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-xl"
+                  >
+                    <Phone size={13} /> {order.mat_store_contact}
+                  </a>
                 </div>
               </div>
               <p className="text-slate-400 text-sm mb-2">Show this OTP to the store — they'll verify it:</p>

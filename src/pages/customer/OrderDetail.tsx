@@ -10,7 +10,7 @@ import { Card } from '../../components/ui/Card'
 import { supabase } from '../../lib/supabase'
 import { formatDate, formatCurrency } from '../../lib/utils'
 import { TRANSACTION_FEE_RATE } from '../../constants'
-import { ArrowLeft, Star } from 'lucide-react'
+import { ArrowLeft, Star, Phone } from 'lucide-react'
 
 // Per-step summary shown in the first card
 const STEP_SUMMARY: Record<string, { icon: string; title: string; desc: string; color: string; bg: string }> = {
@@ -342,10 +342,18 @@ export default function CustomerOrderDetail() {
                   : order.worker_name[0]
                 }
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-slate-50 text-sm font-semibold">{order.worker_name}</p>
                 <p className="text-slate-500 text-xs">Your assigned Pro</p>
               </div>
+              {order.worker_phone && (
+                <a
+                  href={`tel:${order.worker_phone}`}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-bold rounded-xl shrink-0"
+                >
+                  <Phone size={13} /> Call
+                </a>
+              )}
             </div>
           )}
           <Row label="Booking fee" value={formatCurrency(order.booking_amt)} />
