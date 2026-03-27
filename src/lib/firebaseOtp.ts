@@ -7,22 +7,10 @@ import { auth } from './firebase'
 
 export type { ConfirmationResult, RecaptchaVerifier }
 
-export function createRecaptchaVerifier(
-  containerId: string,
-  onVerified?: () => void,
-  onExpired?: () => void
-): RecaptchaVerifier {
+export function createRecaptchaVerifier(containerId: string): RecaptchaVerifier {
   const el = document.getElementById(containerId)
   if (!el) throw new Error(`reCAPTCHA container #${containerId} not found`)
-  return new RecaptchaVerifier(
-    el,
-    {
-      size: 'normal',
-      callback: onVerified,
-      'expired-callback': onExpired,
-    },
-    auth
-  )
+  return new RecaptchaVerifier(el, { size: 'normal' }, auth)
 }
 
 /** Translate Firebase error codes into plain English for the user. */

@@ -21,18 +21,13 @@ export default function WorkerLogin() {
   const [otp, setOtp] = useState('')
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [recaptchaReady, setRecaptchaReady] = useState(false)
   const verifierRef = useRef<RecaptchaVerifier | null>(null)
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
   function initVerifier() {
     try {
-      verifierRef.current = createRecaptchaVerifier(
-        'recaptcha-container',
-        () => setRecaptchaReady(true),
-        () => setRecaptchaReady(false)
-      )
+      verifierRef.current = createRecaptchaVerifier('recaptcha-container')
     } catch {
       console.error('reCAPTCHA failed to initialize')
     }
@@ -47,20 +42,14 @@ export default function WorkerLogin() {
   }, [])
 
   function resetVerifier() {
-    setRecaptchaReady(false)
     try { verifierRef.current?.clear() } catch {}
     verifierRef.current = null
-    try {
-      initVerifier()
-    } catch {
-      console.error('reCAPTCHA re-init failed')
-    }
+    initVerifier()
   }
 
   async function handleSendOtp() {
     if (phone.length !== 10 || !/^[6-9]/.test(phone)) return toast.error('Enter a valid 10-digit Indian mobile number')
     if (!verifierRef.current) return toast.error('reCAPTCHA not ready, refresh the page')
-    if (!recaptchaReady) return toast.error('Please complete the reCAPTCHA first')
     setLoading(true)
     try {
       const { data: worker, error: workerLookupError } = await supabase
@@ -146,16 +135,10 @@ export default function WorkerLogin() {
             value={phone}
             onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
           />
-          <div className="flex justify-center mt-1">
+          <div className="flex justify-center my-1">
             <div id="recaptcha-container" />
           </div>
-          <Button
-            size="lg"
-            variant="accent"
-            loading={loading}
-            onClick={handleSendOtp}
-            disabled={!recaptchaReady}
-          >
+          <Button size="lg" variant="accent" loading={loading} onClick={handleSendOtp}>
             Send OTP →
           </Button>
           <button
