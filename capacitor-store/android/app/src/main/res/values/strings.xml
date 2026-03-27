@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GetMyPro Store</string>
+    <string name="title_activity_main">GetMyPro Store</string>
+    <string name="package_name">com.getmypro.store</string>
+    <string name="custom_url_scheme">com.getmypro.store</string>
+</resources>

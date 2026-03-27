@@ -9,6 +9,7 @@ import {
   createRecaptchaVerifier,
   sendOtp,
   verifyOtp,
+  firebaseAuthMessage,
   type ConfirmationResult,
   type RecaptchaVerifier,
 } from '../../lib/firebaseOtp'
@@ -21,34 +22,56 @@ export default function CustomerLogin() {
   const [otp, setOtp] = useState('')
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [recaptchaReady, setRecaptchaReady] = useState(false)
   const verifierRef = useRef<RecaptchaVerifier | null>(null)
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
-  useEffect(() => {
+  function initVerifier() {
     try {
-      verifierRef.current = createRecaptchaVerifier('recaptcha-container')
+      verifierRef.current = createRecaptchaVerifier(
+        'recaptcha-container',
+        () => setRecaptchaReady(true),
+        () => setRecaptchaReady(false)
+      )
     } catch {
       console.error('reCAPTCHA failed to initialize')
     }
+  }
+
+  useEffect(() => {
+    initVerifier()
     return () => {
       verifierRef.current?.clear()
       verifierRef.current = null
     }
   }, [])
 
+  function resetVerifier() {
+    setRecaptchaReady(false)
+    try { verifierRef.current?.clear() } catch {}
+    verifierRef.current = null
+    try {
+      initVerifier()
+    } catch {
+      console.error('reCAPTCHA re-init failed')
+    }
+  }
+
   async function handleSendOtp() {
     if (!name.trim()) return toast.error('Enter your name')
     if (phone.length !== 10 || !/^[6-9]/.test(phone)) return toast.error('Enter a valid 10-digit Indian mobile number')
     if (!verifierRef.current) return toast.error('reCAPTCHA not ready, refresh the page')
+    if (!recaptchaReady) return toast.error('Please complete the reCAPTCHA first')
     setLoading(true)
     try {
       const result = await sendOtp(phone, verifierRef.current)
       setConfirmationResult(result)
       setStep('otp')
       toast.success('OTP sent!')
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to send OTP')
+    } catch (e: unknown) {
+      toast.error(firebaseAuthMessage(e))
+      resetVerifier()
     }
     setLoading(false)
   }
@@ -87,16 +110,14 @@ export default function CustomerLogin() {
 
       signIn({ id: profileId, name, phone, role: 'customer' })
       navigate('/customer')
-    } catch (e: any) {
-      toast.error(e.message || 'Login failed')
+    } catch (e: unknown) {
+      toast.error(firebaseAuthMessage(e))
     }
     setLoading(false)
   }
 
   return (
     <div className="min-h-dvh flex flex-col px-5 py-8">
-      <div id="recaptcha-container" />
-
       <button onClick={() => navigate('/')} className="text-slate-400 mb-8">← Back</button>
 
       <div className="mb-8">
@@ -127,7 +148,16 @@ export default function CustomerLogin() {
             value={phone}
             onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
           />
-          <Button size="lg" loading={loading} onClick={handleSendOtp} className="mt-2">
+          <div className="flex justify-center mt-1">
+            <div id="recaptcha-container" />
+          </div>
+          <Button
+            size="lg"
+            loading={loading}
+            onClick={handleSendOtp}
+            disabled={!recaptchaReady}
+            className="mt-1"
+          >
             Send OTP →
           </Button>
         </div>
